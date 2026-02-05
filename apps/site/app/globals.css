@@ -39,7 +39,7 @@ a {
 }
 
 main {
-  padding: 64px 20px 96px;
+  padding: 40px 20px 0;
   max-width: 1040px;
   margin: 0 auto;
 }
@@ -48,7 +48,7 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 56px;
+  margin-bottom: 32px;
 }
 
 .brand {
@@ -332,13 +332,36 @@ header {
 
 .footer {
   border-top: 1px solid var(--border);
-  padding-top: 22px;
+  margin-top: 32px;
+  padding: 40px 0 48px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.footer-links {
+  display: flex;
+  gap: 24px;
+}
+
+.footer-links a {
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+
+.footer-links a:hover {
+  color: var(--ink);
+}
+
+.footer-logo {
+  height: 64px;
+  width: auto;
+  display: block;
+  opacity: 0.5;
 }
 
 @media (max-width: 720px) {

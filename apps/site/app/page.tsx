@@ -169,12 +169,25 @@ export default function HomePage() {
       </section>
 
       <footer className="footer">
-        <span>WilmAI • wilm.ai</span>
-        <span>
+        <Image
+          src="/wilmai-logo.png"
+          alt="WilmAI"
+          width={1024}
+          height={1024}
+          className="footer-logo"
+        />
+        <div className="footer-links">
           <a href="https://github.com/aikarjal/wilmai" target="_blank" rel="noreferrer">
             GitHub
           </a>
-        </span>
+          <a href="https://github.com/aikarjal/wilmai#readme" target="_blank" rel="noreferrer">
+            Docs
+          </a>
+          <a href="https://github.com/aikarjal/wilmai/issues" target="_blank" rel="noreferrer">
+            Issues
+          </a>
+        </div>
+        <span>MIT Licensed</span>
       </footer>
     </main>
   );
