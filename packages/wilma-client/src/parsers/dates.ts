@@ -17,6 +17,13 @@ export function parseWilmaTimestamp(value: unknown): Date {
     }
   }
 
+  // Try YYYY-MM-DD HH:MM format (e.g., "2026-02-05 14:00")
+  const isoLikeMatch = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})$/.exec(raw);
+  if (isoLikeMatch) {
+    const [, y, m, d, h, mi] = isoLikeMatch.map(Number);
+    return new Date(y, m - 1, d, h, mi, 0, 0);
+  }
+
   // Try Unix timestamp as string
   if (/^\d{10,13}$/.test(raw)) {
     const num = Number(raw);
