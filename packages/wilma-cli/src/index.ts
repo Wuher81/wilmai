@@ -7,7 +7,7 @@ import {
   type TenantInfo,
   type WilmaProfile,
   type StudentInfo,
-} from "@wilmai/wilma-client";
+} from "@wilm-ai/wilma-client";
 import {
   clearConfig,
   getConfigPath,

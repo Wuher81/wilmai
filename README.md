@@ -18,15 +18,15 @@ Use it as a **CLI for parents** to quickly scan messages, news, and exams across
 ## Quick start
 ```bash
 pnpm install
-pnpm --filter @wilmai/wilma-cli build
+pnpm --filter @wilm-ai/wilma-cli build
 node packages/wilma-cli/dist/index.js
 ```
 
 ### Install globally
 ```bash
-npm i -g @wilmai/wilma-cli
+npm i -g @wilm-ai/wilma-cli
 # or
-pnpm add -g @wilmai/wilma-cli
+pnpm add -g @wilm-ai/wilma-cli
 ```
 
 ### Install as a skill (npx skills)

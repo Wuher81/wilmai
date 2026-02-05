@@ -1,5 +1,5 @@
 {
-  "name": "@wilmai/wilma-cli",
+  "name": "@wilm-ai/wilma-cli",
   "version": "0.0.1",
   "type": "module",
   "main": "dist/index.js",
@@ -13,12 +13,12 @@
     "lint": "echo 'add lint'",
     "test": "echo 'add tests'",
     "start": "node dist/index.js",
-    "prepack": "pnpm --filter @wilmai/wilma-client build && pnpm --filter @wilmai/wilma-cli build",
+    "prepack": "pnpm --filter @wilm-ai/wilma-client build && pnpm --filter @wilm-ai/wilma-cli build",
     "test:live": "tsc -p tsconfig.json && node test/live.spec.mjs"
   },
   "dependencies": {
-    "@wilmai/wilma-client": "^0.0.1",
-    "@inquirer/prompts": "^5.3.8"
+    "@inquirer/prompts": "^5.3.8",
+    "@wilm-ai/wilma-client": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

@@ -20,7 +20,7 @@ importers:
       '@inquirer/prompts':
         specifier: ^5.3.8
         version: 5.5.0
-      '@wilmai/wilma-client':
+      '@wilm-ai/wilma-client':
         specifier: workspace:*
         version: link:../wilma-client
     devDependencies:
@@ -52,7 +52,7 @@ importers:
       '@modelcontextprotocol/sdk':
         specifier: ^1.0.0
         version: 1.25.3(hono@4.11.7)(zod@4.3.6)
-      '@wilmai/wilma-client':
+      '@wilm-ai/wilma-client':
         specifier: workspace:*
         version: link:../wilma-client
     devDependencies:

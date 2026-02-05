@@ -1,12 +1,12 @@
-# @wilmai/wilma-cli
+# @wilm-ai/wilma-cli
 
 Command line interface for Wilma (Finnish school system), built for parents and AI agents.
 
 ## Install
 ```bash
-npm i -g @wilmai/wilma-cli
+npm i -g @wilm-ai/wilma-cli
 # or
-pnpm add -g @wilmai/wilma-cli
+pnpm add -g @wilm-ai/wilma-cli
 ```
 
 ## Run

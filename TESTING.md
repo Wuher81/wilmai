@@ -15,14 +15,14 @@ No secrets are committed to the repo.
 1. Copy `packages/wilma-client/test/.env.example` to `packages/wilma-client/test/.env.local` and fill in credentials.
 2. Run:
    ```bash
-   pnpm --filter @wilmai/wilma-client test:live
+   pnpm --filter @wilm-ai/wilma-client test:live
    ```
 
 ### Wilma CLI live test
 1. Run the interactive CLI once to create `.wilmai/config.json`.
 2. Run:
    ```bash
-   pnpm --filter @wilmai/wilma-cli test:live
+   pnpm --filter @wilm-ai/wilma-cli test:live
    ```
 
 ### Notes
@@ -30,5 +30,5 @@ No secrets are committed to the repo.
 - For CLI tests, the `kids list --json` command must return at least one student.
 - You can override the config file path with:
   ```bash
-  WILMAI_CONFIG_PATH=/path/to/config.json pnpm --filter @wilmai/wilma-cli test:live
+  WILMAI_CONFIG_PATH=/path/to/config.json pnpm --filter @wilm-ai/wilma-cli test:live
   ```

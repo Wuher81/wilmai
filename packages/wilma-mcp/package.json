@@ -1,5 +1,5 @@
 {
-  "name": "@wilmai/wilma-mcp",
+  "name": "@wilm-ai/wilma-mcp",
   "version": "0.0.1",
   "type": "module",
   "main": "dist/index.js",
@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "@wilmai/wilma-client": "workspace:*"
+    "@wilm-ai/wilma-client": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.6.3"
