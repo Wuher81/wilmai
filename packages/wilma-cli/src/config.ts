@@ -1,9 +1,11 @@
 import { mkdir, readFile, writeFile, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { homedir } from "node:os";
 
 export interface StoredProfile {
   id: string;
   tenantUrl: string;
+  tenantName?: string | null;
   username: string;
   passwordObfuscated: string;
   students?: { studentNumber: string; name: string }[];
@@ -24,7 +26,9 @@ export function getConfigPath(): string {
   if (override) {
     return resolve(override);
   }
-  return resolve(process.cwd(), ".wilmai", "config.json");
+  const xdg = process.env.XDG_CONFIG_HOME;
+  const base = xdg ? resolve(xdg) : resolve(homedir(), ".config");
+  return resolve(base, "wilmai", "config.json");
 }
 
 export async function loadConfig(): Promise<CliConfig> {
@@ -43,6 +47,9 @@ export async function loadConfig(): Promise<CliConfig> {
       if (!p.lastStudentNumber && p.studentNumber) {
         p.lastStudentNumber = p.studentNumber;
         p.lastStudentName = p.studentName ?? p.studentNumber;
+      }
+      if (!p.tenantName) {
+        p.tenantName = p.tenantUrl;
       }
       delete (p as { studentNumber?: string | null }).studentNumber;
       delete (p as { studentName?: string | null }).studentName;

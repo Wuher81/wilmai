@@ -19,7 +19,7 @@ No secrets are committed to the repo.
    ```
 
 ### Wilma CLI live test
-1. Run the interactive CLI once to create `.wilmai/config.json`.
+1. Run the interactive CLI once to create `~/.config/wilmai/config.json` (or `$XDG_CONFIG_HOME/wilmai/config.json`).
 2. Run:
    ```bash
    pnpm --filter @wilm-ai/wilma-cli test:live

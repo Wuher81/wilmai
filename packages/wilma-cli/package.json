@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@inquirer/prompts": "^5.3.8",
-    "@wilm-ai/wilma-client": "workspace:*"
+    "@wilm-ai/wilma-client": "^0.0.1"
   },
   "devDependencies": {
     "typescript": "^5.6.3"

@@ -41,6 +41,8 @@ node packages/wilma-cli/dist/index.js news list --all --json
 node packages/wilma-cli/dist/index.js messages list --folder inbox --all --json
 ```
 
+Config is stored in `~/.config/wilmai/config.json` (or `$XDG_CONFIG_HOME/wilmai/config.json`). Override with `WILMAI_CONFIG_PATH`.
+
 ## Credentials & Privacy
 
 Your Wilma credentials are stored locally in `~/.wilmai/config.json` after first login. The password is obfuscated (not encrypted) for convenience — this is a personal productivity tool, not a vault.

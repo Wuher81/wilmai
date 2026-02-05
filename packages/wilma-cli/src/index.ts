@@ -48,7 +48,7 @@ async function chooseProfile(
   if (config.profiles.length) {
     const choices = config.profiles.map((p) => ({
       value: p.id,
-      name: `${p.username} @ ${p.tenantUrl} ${p.lastStudentName ? `(${p.lastStudentName})` : ""}`.trim(),
+      name: `${p.username} @ ${p.tenantName ?? p.tenantUrl}`.trim(),
     }));
     choices.push({ value: "new", name: "Use a new login" });
 
@@ -115,6 +115,7 @@ async function chooseProfile(
   const stored: StoredProfile = {
     id: `${tenant.url}|${username}`,
     tenantUrl: tenant.url,
+    tenantName: tenant.name,
     username,
     passwordObfuscated: obfuscateSecret(passwordValue),
     students: students.map((s) => ({ studentNumber: s.studentNumber, name: s.name })),
@@ -133,7 +134,9 @@ async function chooseProfile(
 async function runInteractive(config: { profiles: StoredProfile[]; lastProfileId?: string | null }) {
   while (true) {
     const profile = await chooseProfile(config);
-    if (!profile) return;
+    if (!profile) {
+      return;
+    }
     const client = await WilmaClient.login(profile);
 
     let nextAction = await selectOrCancel({
@@ -145,6 +148,7 @@ async function runInteractive(config: { profiles: StoredProfile[]; lastProfileId
       ],
     });
     if (nextAction === null) {
+      // Esc from main menu -> back to student picker
       continue;
     }
 
@@ -182,6 +186,7 @@ async function runInteractive(config: { profiles: StoredProfile[]; lastProfileId
         ],
       });
       if (nextAction === null) {
+        // Esc from action menu -> back to student picker
         nextAction = "back";
       }
     }
@@ -648,7 +653,10 @@ async function selectNewsToRead(client: WilmaClient) {
 
 async function selectMessageToRead(client: WilmaClient, folder: MessageFolder) {
   const messages = await client.messages.list(folder);
-  if (!messages.length) return;
+  if (!messages.length) {
+    console.log(`\nNo messages found in ${folder}.`);
+    return;
+  }
   const choices = messages.slice(0, 30).map((msg) => {
     const date = msg.sentAt.toISOString().slice(0, 10);
     return {
@@ -665,9 +673,15 @@ async function selectMessageToRead(client: WilmaClient, folder: MessageFolder) {
   await outputMessageItem(client, Number(selected), false);
 }
 
+const CANCEL_VALUE = "__CANCEL__";
+
 async function selectOrCancel<T>(opts: Parameters<typeof select>[0]): Promise<T | null> {
   try {
-    return (await select(opts)) as T;
+    const result = (await select({ ...(opts as object), cancel: CANCEL_VALUE } as any)) as T | string;
+    if (result === CANCEL_VALUE) {
+      return null;
+    }
+    return result as T;
   } catch (err) {
     if (isPromptCancel(err)) {
       return null;
@@ -678,7 +692,11 @@ async function selectOrCancel<T>(opts: Parameters<typeof select>[0]): Promise<T 
 
 async function inputOrCancel(opts: Parameters<typeof input>[0]): Promise<string | null> {
   try {
-    return await input(opts);
+    const result = (await input({ ...(opts as object), cancel: CANCEL_VALUE } as any)) as string;
+    if (result === CANCEL_VALUE) {
+      return null;
+    }
+    return result;
   } catch (err) {
     if (isPromptCancel(err)) {
       return null;
@@ -689,7 +707,11 @@ async function inputOrCancel(opts: Parameters<typeof input>[0]): Promise<string 
 
 async function passwordOrCancel(opts: Parameters<typeof password>[0]): Promise<string | null> {
   try {
-    return await password(opts);
+    const result = (await password({ ...(opts as object), cancel: CANCEL_VALUE } as any)) as string;
+    if (result === CANCEL_VALUE) {
+      return null;
+    }
+    return result;
   } catch (err) {
     if (isPromptCancel(err)) {
       return null;
@@ -705,6 +727,7 @@ function isPromptCancel(err: unknown): boolean {
   return (
     name === "AbortError" ||
     name === "ExitPromptError" ||
+    name === "CancelPromptError" ||
     message.includes("User force closed the prompt") ||
     message.toLowerCase().includes("cancel") ||
     message.toLowerCase().includes("aborted")

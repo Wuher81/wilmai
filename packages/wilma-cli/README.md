@@ -24,8 +24,8 @@ wilma messages list --folder inbox --all --json
 ```
 
 ## Config
-Local config is stored in `.wilmai/config.json` in the current working directory.
-Use `wilma config clear` to remove it.
+Local config is stored in `~/.config/wilmai/config.json` (or `$XDG_CONFIG_HOME/wilmai/config.json`).
+Use `wilma config clear` to remove it. Override with `WILMAI_CONFIG_PATH`.
 
 ## Notes
 - Credentials are stored with lightweight obfuscation for convenience.
