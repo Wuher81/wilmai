@@ -154,8 +154,8 @@ async function runInteractive(config: { profiles: StoredProfile[]; lastProfileId
       ],
     });
     if (nextAction === null) {
-      // Esc from main menu -> exit app
-      return;
+      // Esc from main menu -> back to student picker
+      continue;
     }
 
     while (nextAction !== "exit" && nextAction !== "back") {
@@ -164,6 +164,7 @@ async function runInteractive(config: { profiles: StoredProfile[]; lastProfileId
       }
 
       if (nextAction === "exams") {
+        console.clear();
         await outputExams(client, { limit: 20, json: false });
       }
 
@@ -190,10 +191,10 @@ async function runInteractive(config: { profiles: StoredProfile[]; lastProfileId
           { value: "back", name: "Back to students" },
           { value: "exit", name: "Exit" },
         ],
-      });
+      }, false); // Don't clear screen - preserve content output
       if (nextAction === null) {
-        // Esc from action menu -> exit app
-        return;
+        // Esc from action menu -> back to student picker
+        nextAction = "back";
       }
     }
 
@@ -679,7 +680,10 @@ async function selectMessageToRead(client: WilmaClient, folder: MessageFolder) {
   await outputMessageItem(client, Number(selected), false);
 }
 
-async function selectOrCancel<T>(opts: Parameters<typeof select>[0]): Promise<T | null> {
+async function selectOrCancel<T>(opts: Parameters<typeof select>[0], clearScreen = true): Promise<T | null> {
+  if (clearScreen) {
+    console.clear();
+  }
   const prompt = select(opts as any, { clearPromptOnDone: true });
 
   const onKeypress = (_ch: string, key: { name?: string } | undefined) => {
@@ -704,6 +708,7 @@ async function selectOrCancel<T>(opts: Parameters<typeof select>[0]): Promise<T 
 }
 
 async function inputOrCancel(opts: Parameters<typeof input>[0]): Promise<string | null> {
+  console.clear();
   const prompt = input(opts as any, { clearPromptOnDone: true });
 
   const onKeypress = (_ch: string, key: { name?: string } | undefined) => {
@@ -728,7 +733,8 @@ async function inputOrCancel(opts: Parameters<typeof input>[0]): Promise<string 
 }
 
 async function passwordOrCancel(opts: Parameters<typeof password>[0]): Promise<string | null> {
-  const prompt = password(opts as any);
+  console.clear();
+  const prompt = password(opts as any, { clearPromptOnDone: true });
 
   const onKeypress = (_ch: string, key: { name?: string } | undefined) => {
     if (key?.name === "escape") {
