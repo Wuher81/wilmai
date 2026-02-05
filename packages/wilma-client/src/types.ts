@@ -66,4 +66,5 @@ export interface WilmaProfile {
   username: string;
   password: string;
   studentNumber?: string | null;
+  debug?: boolean;
 }

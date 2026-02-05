@@ -22,11 +22,13 @@ export class WilmaSession {
   private username?: string;
   private password?: string;
   private studentNumber?: string | null;
+  private debug = false;
 
-  constructor(baseUrl: string, opts?: { studentNumber?: string | null }) {
+  constructor(baseUrl: string, opts?: { studentNumber?: string | null; debug?: boolean }) {
     this.baseUrl = baseUrl.replace(/\/$/, "");
     this.cookieJar = new CookieJar();
     this.studentNumber = opts?.studentNumber ?? null;
+    this.debug = Boolean(opts?.debug);
   }
 
   get urlPrefix(): string | null {
@@ -175,6 +177,12 @@ export class WilmaSession {
     headers.set("Referer", `${this.baseUrl}/`);
     if (cookieHeader) {
       headers.set("Cookie", cookieHeader);
+    }
+
+    if (this.debug) {
+      const method = init?.method ?? "GET";
+      // Avoid logging sensitive headers or body
+      console.log(`[wilmai] ${method} ${url}`);
     }
 
     const resp = await fetch(url, {

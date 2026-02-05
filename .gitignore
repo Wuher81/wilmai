@@ -9,5 +9,6 @@ node_modules
 dist
 build
 coverage
+.local-tests
 
 .wilmai

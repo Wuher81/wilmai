@@ -21,6 +21,7 @@ export class WilmaClient {
   static async login(profile: WilmaProfile): Promise<WilmaClient> {
     const session = new WilmaSession(profile.baseUrl, {
       studentNumber: profile.studentNumber ?? null,
+      debug: profile.debug ?? false,
     });
     await session.login(profile.username, profile.password);
     return new WilmaClient(session);

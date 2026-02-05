@@ -1,10 +1,18 @@
 # wilma-client tests
 
-## Smoke test
+## Offline tests (fixtures)
+Add fixture-based parser tests here (no secrets needed).
 
+## Live test (opt-in)
 1. Copy `test/.env.example` to `test/.env.local` and fill in credentials.
-2. Run `pnpm --filter @wilmai/wilma-client build`.
-3. Run `node test/smoke.mjs` from `packages/wilma-client`.
+2. Build the client:
+   ```bash
+   pnpm --filter @wilmai/wilma-client build
+   ```
+3. Run:
+   ```bash
+   node test/live.spec.mjs
+   ```
 
 You can also point to a different env file with `WILMA_ENV_PATH=/path/to/.env`.
 

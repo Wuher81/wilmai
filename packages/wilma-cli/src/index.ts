@@ -359,7 +359,7 @@ async function handleCommand(
     return;
   }
 
-  const profile = await getProfileForCommand(config);
+  const profile = await getProfileForCommandNonInteractive(config, flags);
   if (!profile) return;
   const client = await WilmaClient.login(profile);
 
@@ -381,11 +381,15 @@ async function handleCommand(
       await outputNewsItem(client, Number(flags.id), flags.json);
       return;
     }
-    if (flags.all) {
+    if (flags.allStudents) {
       await outputAllNews(profile, config, flags.limit ?? 20, flags.json);
       return;
     }
     const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
+    if (!studentInfo && !profile.studentNumber) {
+      await printStudentSelectionHelp(profile, config);
+      return;
+    }
     const perStudentClient = await WilmaClient.login({
       ...profile,
       studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
@@ -403,7 +407,7 @@ async function handleCommand(
       await outputMessageItem(client, Number(flags.id), flags.json);
       return;
     }
-    if (flags.all) {
+    if (flags.allStudents) {
       await outputAllMessages(profile, config, {
         folder: (flags.folder as MessageFolder | undefined) ?? "inbox",
         limit: flags.limit ?? 20,
@@ -412,6 +416,10 @@ async function handleCommand(
       return;
     }
     const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
+    if (!studentInfo && !profile.studentNumber) {
+      await printStudentSelectionHelp(profile, config);
+      return;
+    }
     const perStudentClient = await WilmaClient.login({
       ...profile,
       studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
@@ -426,11 +434,15 @@ async function handleCommand(
   }
 
   if (command === "exams") {
-    if (flags.all) {
+    if (flags.allStudents) {
       await outputAllExams(profile, config, flags.limit ?? 20, flags.json);
       return;
     }
     const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
+    if (!studentInfo && !profile.studentNumber) {
+      await printStudentSelectionHelp(profile, config);
+      return;
+    }
     const perStudentClient = await WilmaClient.login({
       ...profile,
       studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
@@ -445,40 +457,39 @@ async function handleCommand(
 
   console.log("Usage:");
   console.log("  wilma kids list [--json]");
-  console.log("  wilma news list [--limit 20] [--student <id>] [--all] [--json]");
+  console.log("  wilma news list [--limit 20] [--student <id|name>] [--all-students] [--json]");
   console.log("  wilma news read <id> [--json]");
-  console.log("  wilma messages list [--folder inbox] [--limit 20] [--student <id>] [--all] [--json]");
+  console.log("  wilma messages list [--folder inbox] [--limit 20] [--student <id|name>] [--all-students] [--json]");
   console.log("  wilma messages read <id> [--json]");
-  console.log("  wilma exams list [--limit 20] [--student <id>] [--all] [--json]");
+  console.log("  wilma exams list [--limit 20] [--student <id|name>] [--all-students] [--json]");
   console.log("  wilma config clear");
 }
 
-async function getProfileForCommand(config: { profiles: StoredProfile[]; lastProfileId?: string | null }) {
-  if (config.lastProfileId) {
-    const stored = config.profiles.find((p) => p.id === config.lastProfileId);
-    if (stored) {
-      const secret = revealSecret(stored.passwordObfuscated);
-      if (!secret) {
-        throw new Error("Stored password could not be decoded");
-      }
-      const selectedStudent = await chooseStudentFromProfile(stored, {
-        baseUrl: stored.tenantUrl,
-        username: stored.username,
-        password: secret,
-      });
-      stored.lastUsedAt = new Date().toISOString();
-      stored.lastStudentNumber = selectedStudent?.studentNumber ?? null;
-      stored.lastStudentName = selectedStudent?.name ?? null;
-      await saveConfig(config);
-      return {
-        baseUrl: stored.tenantUrl,
-        username: stored.username,
-        password: secret,
-        studentNumber: selectedStudent?.studentNumber ?? undefined,
-      };
-    }
+async function getProfileForCommandNonInteractive(
+  config: { profiles: StoredProfile[]; lastProfileId?: string | null },
+  flags: { debug?: boolean }
+): Promise<WilmaProfile | null> {
+  if (!config.lastProfileId) {
+    console.error("No saved profile found. Run the interactive CLI first.");
+    return null;
   }
-  return chooseProfile(config);
+  const stored = config.profiles.find((p) => p.id === config.lastProfileId);
+  if (!stored) {
+    console.error("Saved profile not found. Run the interactive CLI first.");
+    return null;
+  }
+  const secret = revealSecret(stored.passwordObfuscated);
+  if (!secret) {
+    console.error("Stored password could not be decoded. Re-login interactively.");
+    return null;
+  }
+  return {
+    baseUrl: stored.tenantUrl,
+    username: stored.username,
+    password: secret,
+    studentNumber: stored.lastStudentNumber ?? undefined,
+    debug: Boolean(flags.debug),
+  };
 }
 
 function parseArgs(args: string[]) {
@@ -489,7 +500,8 @@ function parseArgs(args: string[]) {
     folder?: string;
     id?: string;
     student?: string;
-    all?: boolean;
+    allStudents?: boolean;
+    debug?: boolean;
   } = {};
   let i = 0;
   while (i < rest.length) {
@@ -499,8 +511,13 @@ function parseArgs(args: string[]) {
       i += 1;
       continue;
     }
-    if (arg === "--all") {
-      flags.all = true;
+    if (arg === "--all-students" || arg === "--all") {
+      flags.allStudents = true;
+      i += 1;
+      continue;
+    }
+    if (arg === "--debug") {
+      flags.debug = true;
       i += 1;
       continue;
     }
@@ -730,6 +747,11 @@ async function resolveStudentForFlags(
   student?: string
 ): Promise<StudentInfo | null> {
   if (student) {
+    const students = await getStudentsForCommand(profile, config);
+    const exact = students.find((s) => s.studentNumber === student);
+    if (exact) return exact;
+    const match = students.find((s) => fuzzyIncludes(s.name, student));
+    if (match) return match;
     return { studentNumber: student, name: student, href: `/!${student}/` };
   }
   const stored = config.profiles.find((p) => p.id === config.lastProfileId);
@@ -758,7 +780,7 @@ async function outputAllNews(
     results.push({ student, items: news.slice(0, limit) });
   }
   if (json) {
-    console.log(JSON.stringify(results, null, 2));
+    console.log(JSON.stringify({ students: results }, null, 2));
     return;
   }
   results.forEach((entry) => {
@@ -783,7 +805,7 @@ async function outputAllMessages(
     results.push({ student, items: messages.slice(0, opts.limit) });
   }
   if (opts.json) {
-    console.log(JSON.stringify(results, null, 2));
+    console.log(JSON.stringify({ students: results }, null, 2));
     return;
   }
   results.forEach((entry) => {
@@ -809,7 +831,7 @@ async function outputAllExams(
     results.push({ student, items: exams.slice(0, limit) });
   }
   if (json) {
-    console.log(JSON.stringify(results, null, 2));
+    console.log(JSON.stringify({ students: results }, null, 2));
     return;
   }
   results.forEach((entry) => {
@@ -818,6 +840,17 @@ async function outputAllExams(
       const date = exam.examDate.toISOString().slice(0, 10);
       console.log(`- ${date} ${exam.subject}`);
     });
+  });
+}
+
+async function printStudentSelectionHelp(
+  profile: WilmaProfile,
+  config: { profiles: StoredProfile[]; lastProfileId?: string | null }
+) {
+  const students = await getStudentsForCommand(profile, config);
+  console.error("Multiple students found. Use --student <id|name> or --all-students.");
+  students.forEach((s) => {
+    console.error(`- ${s.studentNumber} ${s.name}`);
   });
 }
 
