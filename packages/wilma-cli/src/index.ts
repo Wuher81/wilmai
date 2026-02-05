@@ -402,7 +402,16 @@ async function handleCommand(
 
   if (command === "news") {
     if (subcommand === "read" && flags.id) {
-      await outputNewsItem(client, Number(flags.id), flags.json);
+      const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
+      if (!studentInfo && !profile.studentNumber) {
+        await printStudentSelectionHelp(profile, config);
+        return;
+      }
+      const perStudentClient = await WilmaClient.login({
+        ...profile,
+        studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
+      });
+      await outputNewsItem(perStudentClient, Number(flags.id), flags.json);
       return;
     }
     if (flags.allStudents) {
@@ -428,7 +437,16 @@ async function handleCommand(
 
   if (command === "messages") {
     if (subcommand === "read" && flags.id) {
-      await outputMessageItem(client, Number(flags.id), flags.json);
+      const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
+      if (!studentInfo && !profile.studentNumber) {
+        await printStudentSelectionHelp(profile, config);
+        return;
+      }
+      const perStudentClient = await WilmaClient.login({
+        ...profile,
+        studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
+      });
+      await outputMessageItem(perStudentClient, Number(flags.id), flags.json);
       return;
     }
     if (flags.allStudents) {
