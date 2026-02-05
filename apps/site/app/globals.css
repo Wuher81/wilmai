@@ -23,14 +23,33 @@
 html,
 body {
   height: 100%;
+  overflow-x: hidden;
 }
 
 body {
   font-family: var(--font-sans);
   color: var(--ink);
+  background: #f4f0ea;
+  position: relative;
+}
+
+body::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 900px;
   background: radial-gradient(1200px 800px at 20% -10%, #ffe9c7 0%, transparent 60%),
     radial-gradient(800px 600px at 90% 0%, #d2f1f2 0%, transparent 55%),
     linear-gradient(180deg, #fdf9f3 0%, #f4f0ea 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+body > * {
+  position: relative;
+  z-index: 1;
 }
 
 a {
@@ -332,8 +351,9 @@ header {
 
 .footer {
   border-top: 1px solid var(--border);
-  margin-top: 32px;
-  padding: 40px 0 48px;
+  margin: 32px calc(-50vw + 50%) 0;
+  padding: 40px calc(50vw - 50%) 48px;
+  background: #f4f0ea;
   color: var(--muted);
   font-size: 13px;
   display: flex;
