@@ -10,5 +10,7 @@ dist
 build
 coverage
 .local-tests
+.next
+.vercel
 
 .wilmai
