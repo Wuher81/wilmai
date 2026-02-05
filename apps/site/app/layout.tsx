@@ -1,15 +1,10 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Newsreader } from "next/font/google";
+import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-sans"
-});
-
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  variable: "--font-serif"
 });
 
 export const metadata: Metadata = {
@@ -24,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} ${newsreader.variable}`}>
+    <html lang="en" className={spaceGrotesk.variable}>
       <body>{children}</body>
     </html>
   );
