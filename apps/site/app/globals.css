@@ -60,44 +60,124 @@ header {
 }
 
 .brand .logo {
-  height: 84px;
+  height: 180px;
   width: auto;
   display: block;
 }
 
 .nav-links {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   align-items: center;
-  color: var(--muted);
-  font-size: 13px;
+}
+
+.github-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 500;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 8px rgba(14, 19, 27, 0.06);
+}
+
+.github-btn:hover {
+  background: #f2eee6;
+  box-shadow: 0 4px 12px rgba(14, 19, 27, 0.1);
+}
+
+.github-stars {
+  border-radius: 8px;
+  vertical-align: middle;
 }
 
 .hero {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 32px;
-  align-items: center;
+  text-align: center;
   margin-bottom: 72px;
 }
 
 .hero h1 {
-  font-size: clamp(30px, 4.6vw, 44px);
-  line-height: 1.05;
-  letter-spacing: -0.03em;
+  font-size: clamp(36px, 6vw, 60px);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
+  max-width: 720px;
+  margin: 0 auto;
 }
 
-.hero p {
-  font-size: 16px;
+.gradient-text {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: 18px;
   color: var(--muted);
-  margin: 16px 0 22px;
-  max-width: 520px;
+  margin: 20px auto 28px;
+  max-width: 560px;
+  line-height: 1.5;
 }
 
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
+  justify-content: center;
+}
+
+.terminal {
+  margin-top: 48px;
+  background: var(--code-bg);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(14, 19, 27, 0.25);
+  text-align: left;
+  max-width: 680px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.terminal-chrome {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px;
+  background: #1a1f2b;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.dot.red { background: #ff5f57; }
+.dot.yellow { background: #febc2e; }
+.dot.green { background: #28c840; }
+
+.terminal-title {
+  flex: 1;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 13px;
+  margin-right: 36px;
+}
+
+.terminal-body {
+  padding: 20px 24px;
+  color: var(--code-ink);
+  font-family: "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow-x: auto;
+  margin: 0;
 }
 
 .button {
@@ -270,6 +350,6 @@ header {
 
   .hero-actions {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
   }
 }
