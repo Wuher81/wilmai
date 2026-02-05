@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/wilmai_mascot.png" alt="wilmai mascot" width="200">
+</p>
+
 # wilmai
 
 **wilmai** (wilm.ai) brings the Finnish **Wilma** school app to your terminal and to your AI agents.
