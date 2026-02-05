@@ -295,13 +295,14 @@ function tenantMatches(search: string, tenant: TenantInfo): boolean {
 
 function fuzzyIncludes(target: string, needle: string): boolean {
   const hay = (target ?? "").toLowerCase();
-  if (!needle) return true;
-  if (hay.includes(needle)) return true;
+  const search = (needle ?? "").toLowerCase();
+  if (!search) return true;
+  if (hay.includes(search)) return true;
   let i = 0;
   for (const ch of hay) {
-    if (ch === needle[i]) {
+    if (ch === search[i]) {
       i += 1;
-      if (i >= needle.length) return true;
+      if (i >= search.length) return true;
     }
   }
   return false;

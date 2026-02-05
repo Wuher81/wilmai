@@ -21,7 +21,7 @@ importers:
         specifier: ^5.3.8
         version: 5.5.0
       '@wilm-ai/wilma-client':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../wilma-client
     devDependencies:
       typescript:
