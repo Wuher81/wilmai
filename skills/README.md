@@ -4,7 +4,7 @@ This folder contains skills compatible with the **Skills CLI** (vercel-labs/skil
 
 ## Install with Skills CLI
 ```bash
-npx skills add wilmai/skills
+npx skills add aikarjal/wilmai
 ```
 
 ## Available skills

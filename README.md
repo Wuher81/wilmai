@@ -31,7 +31,7 @@ pnpm add -g @wilm-ai/wilma-cli
 
 ### Install as a skill (npx skills)
 ```bash
-npx skills add wilmai/skills
+npx skills add aikarjal/wilmai
 ```
 
 ### Non‑interactive (for agents / skills)
