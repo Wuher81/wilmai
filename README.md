@@ -22,6 +22,13 @@ pnpm --filter @wilmai/wilma-cli build
 node packages/wilma-cli/dist/index.js
 ```
 
+### Install globally
+```bash
+npm i -g @wilmai/wilma-cli
+# or
+pnpm add -g @wilmai/wilma-cli
+```
+
 ### Non‑interactive (for agents / skills)
 ```bash
 node packages/wilma-cli/dist/index.js kids list --json
