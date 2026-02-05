@@ -1,5 +1,6 @@
 {
   "framework": "nextjs",
   "installCommand": "pnpm install",
-  "buildCommand": "pnpm --filter @wilm-ai/site build"
+  "buildCommand": "pnpm --filter @wilm-ai/site build",
+  "outputDirectory": ".next"
 }
