@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { emitKeypressEvents } from "node:readline";
 import { select, input, password } from "@inquirer/prompts";
 import {
   WilmaClient,
@@ -17,6 +18,11 @@ import {
   saveConfig,
   type StoredProfile,
 } from "./config.js";
+
+// Enable keypress events for escape key detection
+if (process.stdin.isTTY) {
+  emitKeypressEvents(process.stdin);
+}
 
 const ACTIONS = [
   { value: "news", name: "List news" },
@@ -148,8 +154,8 @@ async function runInteractive(config: { profiles: StoredProfile[]; lastProfileId
       ],
     });
     if (nextAction === null) {
-      // Esc from main menu -> back to student picker
-      continue;
+      // Esc from main menu -> exit app
+      return;
     }
 
     while (nextAction !== "exit" && nextAction !== "back") {
@@ -186,8 +192,8 @@ async function runInteractive(config: { profiles: StoredProfile[]; lastProfileId
         ],
       });
       if (nextAction === null) {
-        // Esc from action menu -> back to student picker
-        nextAction = "back";
+        // Esc from action menu -> exit app
+        return;
       }
     }
 
@@ -673,50 +679,75 @@ async function selectMessageToRead(client: WilmaClient, folder: MessageFolder) {
   await outputMessageItem(client, Number(selected), false);
 }
 
-const CANCEL_VALUE = "__CANCEL__";
-
 async function selectOrCancel<T>(opts: Parameters<typeof select>[0]): Promise<T | null> {
-  try {
-    const result = (await select({ ...(opts as object), cancel: CANCEL_VALUE } as any)) as T | string;
-    if (result === CANCEL_VALUE) {
-      return null;
+  const prompt = select(opts as any, { clearPromptOnDone: true });
+
+  const onKeypress = (_ch: string, key: { name?: string } | undefined) => {
+    if (key?.name === "escape") {
+      prompt.cancel();
     }
+  };
+
+  process.stdin.on("keypress", onKeypress);
+
+  try {
+    const result = await prompt;
     return result as T;
   } catch (err) {
     if (isPromptCancel(err)) {
       return null;
     }
     throw err;
+  } finally {
+    process.stdin.removeListener("keypress", onKeypress);
   }
 }
 
 async function inputOrCancel(opts: Parameters<typeof input>[0]): Promise<string | null> {
-  try {
-    const result = (await input({ ...(opts as object), cancel: CANCEL_VALUE } as any)) as string;
-    if (result === CANCEL_VALUE) {
-      return null;
+  const prompt = input(opts as any, { clearPromptOnDone: true });
+
+  const onKeypress = (_ch: string, key: { name?: string } | undefined) => {
+    if (key?.name === "escape") {
+      prompt.cancel();
     }
+  };
+
+  process.stdin.on("keypress", onKeypress);
+
+  try {
+    const result = await prompt;
     return result;
   } catch (err) {
     if (isPromptCancel(err)) {
       return null;
     }
     throw err;
+  } finally {
+    process.stdin.removeListener("keypress", onKeypress);
   }
 }
 
 async function passwordOrCancel(opts: Parameters<typeof password>[0]): Promise<string | null> {
-  try {
-    const result = (await password({ ...(opts as object), cancel: CANCEL_VALUE } as any)) as string;
-    if (result === CANCEL_VALUE) {
-      return null;
+  const prompt = password(opts as any);
+
+  const onKeypress = (_ch: string, key: { name?: string } | undefined) => {
+    if (key?.name === "escape") {
+      prompt.cancel();
     }
+  };
+
+  process.stdin.on("keypress", onKeypress);
+
+  try {
+    const result = await prompt;
     return result;
   } catch (err) {
     if (isPromptCancel(err)) {
       return null;
     }
     throw err;
+  } finally {
+    process.stdin.removeListener("keypress", onKeypress);
   }
 }
 
