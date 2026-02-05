@@ -845,7 +845,13 @@ async function resolveStudentForFlags(
     if (exact) return exact;
     const match = students.find((s) => fuzzyIncludes(s.name, student));
     if (match) return match;
-    return { studentNumber: student, name: student, href: `/!${student}/` };
+    // No match found - show available students and exit
+    console.error(`Error: No student matching "${student}" found.`);
+    if (students.length > 0) {
+      console.error("Available students:");
+      students.forEach((s) => console.error(`  ${s.studentNumber}  ${s.name}`));
+    }
+    process.exit(1);
   }
   const stored = config.profiles.find((p) => p.id === config.lastProfileId);
   if (stored?.lastStudentNumber) {

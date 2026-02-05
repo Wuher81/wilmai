@@ -32,8 +32,11 @@ export function parseExamsHtml(html: string): Exam[] {
     const [d, m, y] = match[1].split(".").map(Number);
     // Use midday UTC to avoid timezone date shifts in JSON output
     const examDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    // Also store as local date string to avoid any serialization issues
+    const dateString = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 
-    const subjDesc = $(firstCells.get(1)).text().trim();
+    // Compact whitespace first to normalize the text before parsing
+    const subjDesc = compactText($(firstCells.get(1)).text());
     let subject = subjDesc;
     let description: string | null = null;
     if (subjDesc.includes(":")) {
@@ -68,6 +71,7 @@ export function parseExamsHtml(html: string): Exam[] {
     exams.push({
       wilmaId: autoId,
       examDate,
+      dateString,
       subject: compactText(subject || "(N/A)"),
       description: description ? compactText(description) : null,
       teacher: teacher ? compactText(teacher) : null,

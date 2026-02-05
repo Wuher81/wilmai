@@ -7,8 +7,24 @@ export function parseWilmaTimestamp(value: unknown): Date {
     return new Date(value * 1000);
   }
 
-  const text = String(value)
-    .trim()
+  const raw = String(value).trim();
+
+  // Try ISO 8601 format first (e.g., "2026-02-05T13:56:42.737Z")
+  if (/^\d{4}-\d{2}-\d{2}T/.test(raw)) {
+    const parsed = new Date(raw);
+    if (!isNaN(parsed.getTime())) {
+      return parsed;
+    }
+  }
+
+  // Try Unix timestamp as string
+  if (/^\d{10,13}$/.test(raw)) {
+    const num = Number(raw);
+    // 10 digits = seconds, 13 digits = milliseconds
+    return new Date(raw.length === 10 ? num * 1000 : num);
+  }
+
+  const text = raw
     .toLowerCase()
     .replace("klo", "")
     .replace("julkaistu", "")

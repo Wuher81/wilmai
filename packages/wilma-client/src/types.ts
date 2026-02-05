@@ -32,6 +32,8 @@ export interface NewsItem {
 export interface Exam {
   wilmaId: number;
   examDate: Date;
+  /** Local date string in YYYY-MM-DD format (avoids timezone serialization issues) */
+  dateString: string;
   subject: string;
   description?: string | null;
   teacher?: string | null;
