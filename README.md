@@ -40,18 +40,18 @@ npx skills add aikarjal/wilmai
 
 ### Non‑interactive (for agents / skills)
 ```bash
-node packages/wilma-cli/dist/index.js kids list --json
-node packages/wilma-cli/dist/index.js news list --all --json
-node packages/wilma-cli/dist/index.js messages list --folder inbox --all --json
+wilma kids list --json
+wilma news list --all-students --json
+wilma messages list --folder inbox --all-students --json
 ```
 
 Config is stored in `~/.config/wilmai/config.json` (or `$XDG_CONFIG_HOME/wilmai/config.json`). Override with `WILMAI_CONFIG_PATH`.
 
 ## Credentials & Privacy
 
-Your Wilma credentials are stored locally in `~/.wilmai/config.json` after first login. The password is obfuscated (not encrypted) for convenience — this is a personal productivity tool, not a vault.
+Your Wilma credentials are stored locally in `~/.config/wilmai/config.json` (or `$XDG_CONFIG_HOME/wilmai/config.json`) after first login. The password is obfuscated (not encrypted) for convenience — this is a personal productivity tool, not a vault.
 
-**Do not share your config file.** If you're on a shared machine, consider deleting the config after use (`rm -rf ~/.wilmai`).
+**Do not share your config file.** If you're on a shared machine, consider deleting the config after use (`rm -rf ~/.config/wilmai`).
 
 ## Vision
 wilmai is designed to be **open‑source**, **portable**, and **agent‑friendly**:
