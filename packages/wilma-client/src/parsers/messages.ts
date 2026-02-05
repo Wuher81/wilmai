@@ -9,8 +9,15 @@ export function parseMessagesList(data: unknown, folder: MessageFolder): Message
   return list.flatMap((item) => {
     try {
       const wilmaId = Number(item["id"] ?? item["Id"]);
-      const subject = String(item["Subject"] ?? item["subject"] ?? "");
-      const timeValue = item["Time"] ?? item["time"];
+      const subject = compactText(String(item["Subject"] ?? item["subject"] ?? ""));
+      const timeValue =
+        item["Time"] ??
+        item["time"] ??
+        item["TimeStamp"] ??
+        item["Timestamp"] ??
+        item["timestamp"] ??
+        item["SentAt"] ??
+        item["sentAt"];
       return [
         {
           wilmaId,
@@ -121,4 +128,8 @@ function normalizeMessagesList(data: unknown): Array<Record<string, unknown>> {
     }
   }
   return [];
+}
+
+function compactText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
 }

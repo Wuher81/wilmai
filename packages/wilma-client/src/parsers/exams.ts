@@ -30,7 +30,8 @@ export function parseExamsHtml(html: string): Exam[] {
     }
 
     const [d, m, y] = match[1].split(".").map(Number);
-    const examDate = new Date(y, m - 1, d);
+    // Use midday UTC to avoid timezone date shifts in JSON output
+    const examDate = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
 
     const subjDesc = $(firstCells.get(1)).text().trim();
     let subject = subjDesc;
@@ -67,10 +68,10 @@ export function parseExamsHtml(html: string): Exam[] {
     exams.push({
       wilmaId: autoId,
       examDate,
-      subject: subject || "(N/A)",
-      description,
-      teacher,
-      notes,
+      subject: compactText(subject || "(N/A)"),
+      description: description ? compactText(description) : null,
+      teacher: teacher ? compactText(teacher) : null,
+      notes: notes ? compactText(notes) : null,
       fetchedAt: now,
     });
 
@@ -78,4 +79,8 @@ export function parseExamsHtml(html: string): Exam[] {
   });
 
   return exams;
+}
+
+function compactText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
 }

@@ -13,7 +13,12 @@ Use the `wilma` / `wilmai` CLI in non-interactive mode to retrieve Wilma data fo
 
 ## Quick start
 
-1. Ensure the user has run the interactive CLI once to create `.wilmai/config.json`.
+### Install
+```bash
+npm i -g @wilm-ai/wilma-cli
+```
+
+1. Ensure the user has run the interactive CLI once to create `~/.config/wilmai/config.json`.
 2. Use non-interactive commands with `--json`.
 
 ## Core tasks
@@ -40,8 +45,15 @@ wilma exams list --all-students --json
 ```
 
 ## Notes
-- If no `--student` is provided, the CLI uses the last selected student from `.wilmai/config.json`.
+- If no `--student` is provided, the CLI uses the last selected student from `~/.config/wilmai/config.json` (or `$XDG_CONFIG_HOME/wilmai/config.json`).
 - If multiple students exist and no default is set, the CLI will print a helpful error with the list of students.
+- If auth expires or the CLI says no saved profile, re-run `wilma` interactively or use `wilma config clear` to reset.
+
+## Read commands
+```bash
+wilma messages read <id>
+wilma news read <id>
+```
 
 ## Actionability guidance (for parents)
 

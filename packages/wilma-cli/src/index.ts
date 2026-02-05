@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { emitKeypressEvents } from "node:readline";
 import { select, input, password } from "@inquirer/prompts";
+import { readFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import {
   WilmaClient,
   listTenants,
@@ -33,6 +35,15 @@ const ACTIONS = [
 
 async function main() {
   const args = process.argv.slice(2);
+  if (args.includes("--help") || args.includes("-h")) {
+    printUsage();
+    return;
+  }
+  if (args.includes("--version") || args.includes("-v")) {
+    const version = await readPackageVersion();
+    console.log(version);
+    return;
+  }
   if (args[0] === "config" && args[1] === "clear") {
     await clearConfig();
     console.log(`Cleared config at ${getConfigPath()}`);
@@ -475,6 +486,21 @@ async function handleCommand(
   console.log("  wilma messages read <id> [--json]");
   console.log("  wilma exams list [--limit 20] [--student <id|name>] [--all-students] [--json]");
   console.log("  wilma config clear");
+  console.log("  wilma --help | -h");
+  console.log("  wilma --version | -v");
+}
+
+function printUsage() {
+  console.log("Usage:");
+  console.log("  wilma kids list [--json]");
+  console.log("  wilma news list [--limit 20] [--student <id|name>] [--all-students] [--json]");
+  console.log("  wilma news read <id> [--json]");
+  console.log("  wilma messages list [--folder inbox] [--limit 20] [--student <id|name>] [--all-students] [--json]");
+  console.log("  wilma messages read <id> [--json]");
+  console.log("  wilma exams list [--limit 20] [--student <id|name>] [--all-students] [--json]");
+  console.log("  wilma config clear");
+  console.log("  wilma --help | -h");
+  console.log("  wilma --version | -v");
 }
 
 async function getProfileForCommandNonInteractive(
@@ -559,6 +585,13 @@ function parseArgs(args: string[]) {
     i += 1;
   }
   return { command, subcommand, flags };
+}
+
+async function readPackageVersion(): Promise<string> {
+  const pkgPath = resolve(dirname(new URL(import.meta.url).pathname), "..", "package.json");
+  const raw = await readFile(pkgPath, "utf-8");
+  const data = JSON.parse(raw) as { version?: string };
+  return data.version ?? "unknown";
 }
 
 async function outputNews(
