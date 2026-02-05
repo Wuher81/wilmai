@@ -1,0 +1,9 @@
+{
+  "skills": [
+    {
+      "name": "wilma",
+      "path": "skills/wilma",
+      "description": "Use the Wilma CLI to fetch kids, messages, news, and exams for Finnish Wilma accounts."
+    }
+  ]
+}

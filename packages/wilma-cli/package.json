@@ -17,7 +17,7 @@
     "test:live": "tsc -p tsconfig.json && node test/live.spec.mjs"
   },
   "dependencies": {
-    "@wilmai/wilma-client": "workspace:*",
+    "@wilmai/wilma-client": "^0.0.1",
     "@inquirer/prompts": "^5.3.8"
   },
   "devDependencies": {

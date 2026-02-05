@@ -29,12 +29,23 @@ npm i -g @wilmai/wilma-cli
 pnpm add -g @wilmai/wilma-cli
 ```
 
+### Install as a skill (npx skills)
+```bash
+npx skills add wilmai/skills
+```
+
 ### Non‑interactive (for agents / skills)
 ```bash
 node packages/wilma-cli/dist/index.js kids list --json
 node packages/wilma-cli/dist/index.js news list --all --json
 node packages/wilma-cli/dist/index.js messages list --folder inbox --all --json
 ```
+
+## Credentials & Privacy
+
+Your Wilma credentials are stored locally in `~/.wilmai/config.json` after first login. The password is obfuscated (not encrypted) for convenience — this is a personal productivity tool, not a vault.
+
+**Do not share your config file.** If you're on a shared machine, consider deleting the config after use (`rm -rf ~/.wilmai`).
 
 ## Vision
 wilmai is designed to be **open‑source**, **portable**, and **agent‑friendly**:

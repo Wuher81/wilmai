@@ -1,0 +1,9 @@
+interface:
+  display_name: Wilmai CLI
+  short_description: Use the Wilma CLI to fetch kids, messages, news, and exams
+  default_prompt: Use the wilma CLI in non-interactive mode to fetch Wilma data. Prefer
+    --json outputs and avoid prompting.
+display_name: Wilma
+short_description: Fetch Wilma kids, messages, news, and exams via CLI
+default_prompt: Use the wilma CLI in non-interactive mode to fetch Wilma data. Prefer
+  --json outputs and avoid prompting.

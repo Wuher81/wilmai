@@ -56,8 +56,8 @@ export async function loadConfig(): Promise<CliConfig> {
 
 export async function saveConfig(config: CliConfig): Promise<void> {
   const path = getConfigPath();
-  await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, JSON.stringify(config, null, 2) + "\n", "utf-8");
+  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+  await writeFile(path, JSON.stringify(config, null, 2) + "\n", { encoding: "utf-8", mode: 0o600 });
 }
 
 export async function clearConfig(): Promise<void> {
