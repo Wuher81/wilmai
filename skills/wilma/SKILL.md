@@ -1,6 +1,6 @@
 ---
 name: wilma
-description: Use the Wilma CLI to fetch kids, messages, news, and exams for Finnish Wilma accounts. Trigger this skill when an agent needs Wilma data or must run non-interactive CLI commands with JSON output.
+description: Access Finland's Wilma school system from AI agents. Fetch messages, news, exams, and student data via the wilma CLI. Use when an agent needs to check school notifications, list upcoming exams, or summarize what needs parent attention.
 ---
 
 # Wilma Skill
