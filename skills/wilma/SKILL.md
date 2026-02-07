@@ -75,3 +75,7 @@ When in doubt, **include** and let the parent decide. Prefer a short, structured
 ## Scripts
 
 Use `scripts/wilma-cli.sh` for a stable wrapper around the CLI.
+
+## Links
+- **GitHub:** https://github.com/aikarjal/wilmai
+- **Website:** https://wilm.ai
