@@ -48,12 +48,21 @@ wilma exams list --all-students --json
 - If no `--student` is provided, the CLI uses the last selected student from `~/.config/wilmai/config.json` (or `$XDG_CONFIG_HOME/wilmai/config.json`).
 - If multiple students exist and no default is set, the CLI will print a helpful error with the list of students.
 - If auth expires or the CLI says no saved profile, re-run `wilma` interactively or use `wilma config clear` to reset.
+- Run `wilma update` to update the CLI to the latest version.
 
 ## Read commands
 ```bash
-wilma messages read <id>
-wilma news read <id>
+wilma messages read <id> --student <id|name> [--json]
+wilma news read <id> --student <id|name> [--json]
 ```
+
+When the account has multiple students, `--student` is **required** for read commands. The CLI will error with the list of available students if it is omitted.
+
+## Update CLI
+```bash
+wilma update
+```
+Updates the CLI to the latest version via npm.
 
 ## Actionability guidance (for parents)
 

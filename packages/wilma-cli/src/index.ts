@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { emitKeypressEvents } from "node:readline";
 import { select, input, password } from "@inquirer/prompts";
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { spawn } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import {
   WilmaClient,
@@ -35,13 +36,23 @@ const ACTIONS = [
 
 async function main() {
   const args = process.argv.slice(2);
+
+  // Fire version check early (non-blocking)
+  const updateCheck = checkForUpdate();
+
   if (args.includes("--help") || args.includes("-h")) {
     printUsage();
+    await showUpdateNotice(updateCheck);
     return;
   }
   if (args.includes("--version") || args.includes("-v")) {
     const version = await readPackageVersion();
     console.log(version);
+    await showUpdateNotice(updateCheck);
+    return;
+  }
+  if (args[0] === "update") {
+    await handleUpdate();
     return;
   }
   if (args[0] === "config" && args[1] === "clear") {
@@ -53,10 +64,12 @@ async function main() {
   const config = await loadConfig();
   if (args.length) {
     await handleCommand(args, config);
+    await showUpdateNotice(updateCheck);
     return;
   }
 
   await runInteractive(config);
+  await showUpdateNotice(updateCheck);
 }
 
 async function chooseProfile(
@@ -516,10 +529,11 @@ async function handleCommand(
   console.log("Usage:");
   console.log("  wilma kids list [--json]");
   console.log("  wilma news list [--limit 20] [--student <id|name>] [--all-students] [--json]");
-  console.log("  wilma news read <id> [--json]");
+  console.log("  wilma news read <id> [--student <id|name>] [--json]");
   console.log("  wilma messages list [--folder inbox] [--limit 20] [--student <id|name>] [--all-students] [--json]");
-  console.log("  wilma messages read <id> [--json]");
+  console.log("  wilma messages read <id> [--student <id|name>] [--json]");
   console.log("  wilma exams list [--limit 20] [--student <id|name>] [--all-students] [--json]");
+  console.log("  wilma update");
   console.log("  wilma config clear");
   console.log("  wilma --help | -h");
   console.log("  wilma --version | -v");
@@ -529,10 +543,11 @@ function printUsage() {
   console.log("Usage:");
   console.log("  wilma kids list [--json]");
   console.log("  wilma news list [--limit 20] [--student <id|name>] [--all-students] [--json]");
-  console.log("  wilma news read <id> [--json]");
+  console.log("  wilma news read <id> [--student <id|name>] [--json]");
   console.log("  wilma messages list [--folder inbox] [--limit 20] [--student <id|name>] [--all-students] [--json]");
-  console.log("  wilma messages read <id> [--json]");
+  console.log("  wilma messages read <id> [--student <id|name>] [--json]");
   console.log("  wilma exams list [--limit 20] [--student <id|name>] [--all-students] [--json]");
+  console.log("  wilma update");
   console.log("  wilma config clear");
   console.log("  wilma --help | -h");
   console.log("  wilma --version | -v");
@@ -627,6 +642,136 @@ async function readPackageVersion(): Promise<string> {
   const raw = await readFile(pkgPath, "utf-8");
   const data = JSON.parse(raw) as { version?: string };
   return data.version ?? "unknown";
+}
+
+async function handleUpdate(): Promise<void> {
+  const currentVersion = await readPackageVersion();
+  console.log(`Current version: ${currentVersion}`);
+  console.log("Updating @wilm-ai/wilma-cli...\n");
+
+  return new Promise((resolve, reject) => {
+    const child = spawn("npm", ["install", "-g", "@wilm-ai/wilma-cli@latest"], {
+      stdio: "inherit",
+      shell: true,
+    });
+
+    child.on("error", (err) => {
+      if ((err as NodeJS.ErrnoException).code === "ENOENT") {
+        console.error("Error: npm not found. Please install npm and try again.");
+      } else {
+        console.error("Update failed:", err.message);
+      }
+      reject(err);
+    });
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        console.log("\nUpdate complete.");
+        resolve();
+      } else {
+        console.error(`\nnpm exited with code ${code}`);
+        reject(new Error(`npm exited with code ${code}`));
+      }
+    });
+  });
+}
+
+// --- Version check / update notification ---
+
+const VERSION_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function getVersionCachePath(): string {
+  return resolve(dirname(getConfigPath()), "version-check.json");
+}
+
+interface VersionCache {
+  latestVersion: string;
+  checkedAt: number;
+}
+
+async function readVersionCache(): Promise<VersionCache | null> {
+  try {
+    const raw = await readFile(getVersionCachePath(), "utf-8");
+    return JSON.parse(raw) as VersionCache;
+  } catch {
+    return null;
+  }
+}
+
+async function writeVersionCache(cache: VersionCache): Promise<void> {
+  const cachePath = getVersionCachePath();
+  await mkdir(dirname(cachePath), { recursive: true });
+  await writeFile(cachePath, JSON.stringify(cache), "utf-8");
+}
+
+async function checkForUpdate(): Promise<string | null> {
+  try {
+    const cache = await readVersionCache();
+    if (cache && Date.now() - cache.checkedAt < VERSION_CHECK_INTERVAL_MS) {
+      return cache.latestVersion;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+
+    try {
+      const response = await fetch(
+        "https://registry.npmjs.org/@wilm-ai/wilma-cli/latest",
+        { signal: controller.signal }
+      );
+      clearTimeout(timeout);
+
+      if (!response.ok) return cache?.latestVersion ?? null;
+
+      const data = (await response.json()) as { version?: string };
+      const latestVersion = data.version ?? null;
+
+      if (latestVersion) {
+        await writeVersionCache({ latestVersion, checkedAt: Date.now() });
+      }
+
+      return latestVersion;
+    } catch {
+      clearTimeout(timeout);
+      return cache?.latestVersion ?? null;
+    }
+  } catch {
+    return null;
+  }
+}
+
+function isNewerVersion(latest: string, current: string): boolean {
+  const latestParts = latest.split(".").map(Number);
+  const currentParts = current.split(".").map(Number);
+  for (let i = 0; i < 3; i++) {
+    const l = latestParts[i] ?? 0;
+    const c = currentParts[i] ?? 0;
+    if (l > c) return true;
+    if (l < c) return false;
+  }
+  return false;
+}
+
+async function showUpdateNotice(
+  versionCheckPromise: Promise<string | null>
+): Promise<void> {
+  try {
+    const latestVersion = await Promise.race([
+      versionCheckPromise,
+      new Promise<null>((resolve) => setTimeout(() => resolve(null), 1000)),
+    ]);
+    if (!latestVersion) return;
+
+    const currentVersion = await readPackageVersion();
+    if (isNewerVersion(latestVersion, currentVersion)) {
+      process.stderr.write(
+        `\nUpdate available: ${currentVersion} → ${latestVersion}\n` +
+        `Run "wilma update" to update.\n`
+      );
+    }
+  } catch {
+    // Silently ignore any errors
+  }
 }
 
 async function outputNews(
