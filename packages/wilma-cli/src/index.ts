@@ -402,6 +402,14 @@ async function handleCommand(
 
   if (command === "news") {
     if (subcommand === "read" && flags.id) {
+      if (!flags.student) {
+        const students = await getStudentsForCommand(profile, config);
+        if (students.length > 1) {
+          console.error("Multiple students found. Use --student <id> to specify which one:");
+          students.forEach((s) => console.error(`  ${s.studentNumber}  ${s.name}`));
+          process.exit(1);
+        }
+      }
       const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
       if (!studentInfo && !profile.studentNumber) {
         await printStudentSelectionHelp(profile, config);
@@ -437,6 +445,14 @@ async function handleCommand(
 
   if (command === "messages") {
     if (subcommand === "read" && flags.id) {
+      if (!flags.student) {
+        const students = await getStudentsForCommand(profile, config);
+        if (students.length > 1) {
+          console.error("Multiple students found. Use --student <id> to specify which one:");
+          students.forEach((s) => console.error(`  ${s.studentNumber}  ${s.name}`));
+          process.exit(1);
+        }
+      }
       const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
       if (!studentInfo && !profile.studentNumber) {
         await printStudentSelectionHelp(profile, config);
