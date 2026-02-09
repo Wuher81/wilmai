@@ -16,11 +16,47 @@ wilma
 wilmai
 ```
 
-## Non-interactive (agent-friendly)
+## Commands
+
+### Daily briefing
 ```bash
-wilma kids list --json
-wilma news list --all --json
-wilma messages list --folder inbox --all --json
+wilma summary [--days 7] [--student <id|name>] [--all-students] [--json]
+```
+Combines today's and tomorrow's schedule, upcoming exams, recent homework, news, and messages into one view. Designed for AI agents to surface what matters.
+
+### Schedule
+```bash
+wilma schedule list [--when today|tomorrow|week] [--student <id|name>] [--all-students] [--json]
+```
+
+### Homework
+```bash
+wilma homework list [--limit 10] [--student <id|name>] [--all-students] [--json]
+```
+
+### Upcoming exams
+```bash
+wilma exams list [--limit 20] [--student <id|name>] [--all-students] [--json]
+```
+
+### Exam grades
+```bash
+wilma grades list [--limit 20] [--student <id|name>] [--all-students] [--json]
+```
+
+### News and messages
+```bash
+wilma news list [--limit 20] [--student <id|name>] [--all-students] [--json]
+wilma news read <id> [--student <id|name>] [--json]
+wilma messages list [--folder inbox] [--limit 20] [--student <id|name>] [--all-students] [--json]
+wilma messages read <id> [--student <id|name>] [--json]
+```
+
+### Other
+```bash
+wilma kids list [--json]
+wilma update
+wilma config clear
 ```
 
 ## Config
@@ -29,4 +65,5 @@ Use `wilma config clear` to remove it. Override with `WILMAI_CONFIG_PATH`.
 
 ## Notes
 - Credentials are stored with lightweight obfuscation for convenience.
-- For multi-child accounts, you can pass `--student <id>` or `--all`.
+- For multi-child accounts, you can pass `--student <id|name>` or `--all-students`.
+- All list commands support `--json` for agent-friendly structured output.

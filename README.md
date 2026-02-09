@@ -16,7 +16,6 @@ Use it as a **CLI for parents** to quickly scan messages, news, and exams across
 ## What’s inside
 - `packages/wilma-client` – TypeScript Wilma client (auth + parsing + tenant list)
 - `packages/wilma-cli` – Interactive CLI and non‑interactive command mode
-- `packages/wilma-mcp` – MCP server (planned / optional)
 - `apps/site` – Landing page (Vercel)
 
 ## Quick start
@@ -40,9 +39,11 @@ npx skills add aikarjal/wilmai
 
 ### Non‑interactive (for agents / skills)
 ```bash
-wilma kids list --json
-wilma news list --all-students --json
-wilma messages list --folder inbox --all-students --json
+wilma summary --all-students --json
+wilma schedule list --when tomorrow --json
+wilma homework list --all-students --json
+wilma exams list --all-students --json
+wilma grades list --all-students --json
 ```
 
 Config is stored in `~/.config/wilmai/config.json` (or `$XDG_CONFIG_HOME/wilmai/config.json`). Override with `WILMAI_CONFIG_PATH`.
@@ -57,7 +58,7 @@ Your Wilma credentials are stored locally in `~/.config/wilmai/config.json` (or 
 wilmai is designed to be **open‑source**, **portable**, and **agent‑friendly**:
 - CLI for humans
 - JSON output for AI tools
-- Optional MCP wrapper for native agent integrations
+- Skills integration for AI agents
 
 ## License
 MIT

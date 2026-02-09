@@ -1,5 +1,5 @@
 import { WilmaSession } from "./session.js";
-import type { Exam, Message, MessageFolder, NewsItem, WilmaProfile, StudentInfo } from "./types.js";
+import type { Exam, Message, MessageFolder, NewsItem, OverviewData, WilmaProfile, StudentInfo } from "./types.js";
 import { parseWilmaTimestamp } from "./parsers/dates.js";
 import { parseMessagesList, parseMessageDetailHtml } from "./parsers/messages.js";
 import {
@@ -9,6 +9,7 @@ import {
   parseNewsListHtml,
 } from "./parsers/news.js";
 import { parseExamsHtml } from "./parsers/exams.js";
+import { parseOverview } from "./parsers/overview.js";
 import { parseStudentsFromHome } from "./parsers/students.js";
 
 export class WilmaClient {
@@ -110,6 +111,14 @@ export class WilmaClient {
       const resp = await this.session.get(`/exams/calendar${startQs}${endQs}`);
       const text = await resp.text();
       return parseExamsHtml(text);
+    },
+  };
+
+  overview = {
+    get: async (): Promise<OverviewData> => {
+      const resp = await this.session.get("/overview");
+      const text = await resp.text();
+      return parseOverview(safeJson(text));
     },
   };
 }

@@ -1,13 +1,13 @@
 ---
 name: wilma
-description: Access Finland's Wilma school system from AI agents. Fetch messages, news, exams, and student data via the wilma CLI. Use when an agent needs to check school notifications, list upcoming exams, or summarize what needs parent attention.
+description: Access Finland's Wilma school system from AI agents. Fetch schedules, homework, exams, grades, messages, and news via the wilma CLI. Start with `wilma summary --json` for a full daily briefing, or drill into specific data with individual commands.
 ---
 
 # Wilma Skill
 
 ## Overview
 
-Wilma is the Finnish school information system used by schools and municipalities to share messages, news, exams, attendance, and other student-related updates with parents/guardians.
+Wilma is the Finnish school information system used by schools and municipalities to share messages, news, exams, schedules, homework, and other student-related updates with parents/guardians.
 
 Use the `wilma` / `wilmai` CLI in non-interactive mode to retrieve Wilma data for AI agents. Prefer `--json` outputs and avoid interactive prompts.
 
@@ -23,59 +23,76 @@ npm i -g @wilm-ai/wilma-cli
 
 ## Core tasks
 
+### Daily briefing (start here)
+```bash
+wilma summary --student <id|name> --json
+wilma summary --all-students --json
+```
+Returns today's and tomorrow's schedule, upcoming exams, recent homework, recent news, and recent messages in one call. This is the best starting point for any parent-facing summary.
+
+### Schedule
+```bash
+wilma schedule list --when today --student <id|name> --json
+wilma schedule list --when tomorrow --student <id|name> --json
+wilma schedule list --when week --student <id|name> --json
+```
+
+### Homework
+```bash
+wilma homework list --student <id|name> --json
+```
+
+### Upcoming exams
+```bash
+wilma exams list --student <id|name> --json
+```
+
+### Exam grades
+```bash
+wilma grades list --student <id|name> --json
+```
+
 ### List students
 ```bash
 wilma kids list --json
 ```
 
-### Fetch data for one student
+### News and messages
 ```bash
-wilma news list --student 123456 --json
-wilma messages list --student 123456 --folder inbox --json
-wilma exams list --student 123456 --json
+wilma news list --student <id|name> --json
+wilma news read <id> --student <id|name> --json
+wilma messages list --student <id|name> --folder inbox --json
+wilma messages read <id> --student <id|name> --json
+```
+
+### Fetch data for all students
+All list commands support `--all-students`:
+```bash
+wilma summary --all-students --json
+wilma homework list --all-students --json
+wilma exams list --all-students --json
 ```
 
 You can also pass a name fragment for `--student` (fuzzy match).
 
-### Fetch data for all students
-```bash
-wilma news list --all-students --json
-wilma messages list --all-students --folder inbox --json
-wilma exams list --all-students --json
-```
-
 ## Notes
 - If no `--student` is provided, the CLI uses the last selected student from `~/.config/wilmai/config.json` (or `$XDG_CONFIG_HOME/wilmai/config.json`).
 - If multiple students exist and no default is set, the CLI will print a helpful error with the list of students.
+- When the account has multiple students, `--student` is **required** for read commands.
 - If auth expires or the CLI says no saved profile, re-run `wilma` interactively or use `wilma config clear` to reset.
 - Run `wilma update` to update the CLI to the latest version.
-
-## Read commands
-```bash
-wilma messages read <id> --student <id|name> [--json]
-wilma news read <id> --student <id|name> [--json]
-```
-
-When the account has multiple students, `--student` is **required** for read commands. The CLI will error with the list of available students if it is omitted.
-
-## Update CLI
-```bash
-wilma update
-```
-Updates the CLI to the latest version via npm.
 
 ## Actionability guidance (for parents)
 
 Wilma contains a mix of urgent items and general info. When summarizing for parents, prioritize **actionable** items:
 
 **Include** items that:
-- Require action or preparation (forms, replies, attendance, permissions, materials to bring).
-- Announce a deadline or time‑specific requirement.
+- Require action or preparation (forms, replies, permissions, materials to bring).
+- Announce a deadline or time-specific requirement.
 - Describe a schedule deviation or noteworthy event (trips, themed days, school closures, exams).
-- Refer to a date/time within the target window, or clearly imply it.
-- Are broad bulletins (weekly/monthly) whose timestamp is close to the target window (they may contain relevant dates).
+- Mention homework, exams, or upcoming deadlines.
 
-**De‑prioritize** items that:
+**De-prioritize** items that:
 - Are purely informational with no action, deadline, or schedule impact.
 - Are generic announcements unrelated to the target period.
 

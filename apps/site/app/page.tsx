@@ -1,7 +1,7 @@
 import Image from "next/image";
 import QuickStart from "../components/QuickStart";
 
-const examples = `wilma kids list --json\nwilma messages list --student \"Kiia\" --json\nwilma exams list --all-students --json`;
+const examples = `wilma summary --student \"Kiia\" --json\nwilma schedule list --when tomorrow --json\nwilma homework list --all-students --json\nwilma exams list --student \"Kiia\" --json\nwilma grades list --all-students --json`;
 
 export default function HomePage() {
   return (
@@ -50,8 +50,8 @@ export default function HomePage() {
       <section className="hero">
         <h1>Wilma access for <span className="gradient-text">AI agents</span>.</h1>
         <p className="hero-sub">
-          Pull messages, news, and exam schedules straight from Wilma, then let your
-          agent summarize what matters.
+          Schedules, homework, exams, grades, messages, and news from Wilma.
+          One command gives your agent a full daily briefing.
         </p>
         <div className="hero-actions">
           <a className="button primary" href="#quickstart">
@@ -69,20 +69,33 @@ export default function HomePage() {
             <span className="terminal-title">wilma-cli</span>
           </div>
           <pre className="terminal-body">
-{`$ wilma messages list --student "Kiia" --json
+{`$ wilma summary --student "Kiia"
 
-[
-  {
-    "subject": "Math exam on Friday",
-    "from": "Teacher Virtanen",
-    "date": "2025-01-15"
-  },
-  {
-    "subject": "Field trip permission slip",
-    "from": "Teacher Korhonen",
-    "date": "2025-01-14"
-  }
-]`}
+Summary for Kiia (2025-03-10)
+
+TODAY (2025-03-10)
+  08:30-09:15  Liikunta
+  10:30-11:15  Matematiikka
+  11:15-12:15  Suomen kieli ja kirjallisuus
+
+TOMORROW (2025-03-11)
+  08:30-09:15  Matematiikka
+  09:15-10:00  Musiikki
+  10:30-11:15  Englanti, A1
+
+UPCOMING EXAMS
+  2025-03-18  Englanti, A1: Unit 3 koe — Kpl 7, 8 ja 9
+
+RECENT HOMEWORK
+  2025-03-10  Englanti, A1: Opettele kpl 8 sanat
+  2025-03-09  Matematiikka: s. 117 teht. 2-4
+
+NEWS (last 7 days)
+  2025-03-08  Luistelupäivä tiistaina 11.3. (id:4501)
+
+MESSAGES (last 7 days)
+  2025-03-09  Retken tiedot ja luvat (id:12345)
+  2025-03-07  Uimahallikäynti pe 14.3. (id:12300)`}
           </pre>
         </div>
       </section>
@@ -117,24 +130,32 @@ export default function HomePage() {
         <h2>Highlights</h2>
         <div className="cards">
           <div className="card">
-            <h3>Multi-tenant by city</h3>
-            <p>Connect to the correct Wilma instance every time.</p>
+            <h3>Daily briefing</h3>
+            <p>One command surfaces schedule, homework, exams, news, and messages.</p>
+          </div>
+          <div className="card">
+            <h3>Schedule & homework</h3>
+            <p>What classes are tomorrow? What homework is due? Answered instantly.</p>
+          </div>
+          <div className="card">
+            <h3>Exams & grades</h3>
+            <p>Upcoming exams with study topics. Past results with grades.</p>
+          </div>
+          <div className="card">
+            <h3>Messages & news</h3>
+            <p>Field trips, swim classes, schedule changes — buried info surfaced automatically.</p>
           </div>
           <div className="card">
             <h3>Multi-kid profiles</h3>
-            <p>Cycle through siblings quickly without re-auth.</p>
+            <p>All your children in one command with --all-students.</p>
           </div>
           <div className="card">
             <h3>Agent-ready JSON</h3>
-            <p>Non-interactive commands return clean structured data.</p>
+            <p>Every command returns clean structured data with --json.</p>
           </div>
           <div className="card">
             <h3>Local only</h3>
             <p>No backend server, no data sync, no vendor lock-in.</p>
-          </div>
-          <div className="card">
-            <h3>MIT licensed</h3>
-            <p>Fork it, extend it, and ship it however you want.</p>
           </div>
         </div>
       </section>
@@ -145,8 +166,7 @@ export default function HomePage() {
           <pre>{examples}</pre>
         </div>
         <p className="lead" style={{ marginTop: "16px" }}>
-          Agent prompt: “Fetch all Wilma messages for my kids and summarize what needs
-          action.”
+          Agent prompt: &quot;What do my kids have going on at school this week?&quot;
         </p>
       </section>
 

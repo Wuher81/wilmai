@@ -1,11 +1,16 @@
 export type {
   Exam,
+  ExamGrade,
+  HomeworkItem,
   Message,
   MessageFolder,
   Municipality,
   NewsItem,
+  OverviewData,
+  ScheduleLesson,
   TenantDiscoveryResponse,
   TenantInfo,
+  UpcomingExam,
   WilmaProfile,
   StudentInfo,
 } from "./types.js";

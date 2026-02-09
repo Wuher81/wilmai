@@ -70,3 +70,61 @@ export interface WilmaProfile {
   studentNumber?: string | null;
   debug?: boolean;
 }
+
+export interface ScheduleLesson {
+  /** YYYY-MM-DD */
+  date: string;
+  /** 1=Monday ... 5=Friday */
+  dayOfWeek: number;
+  start: string;
+  end: string;
+  subject: string;
+  subjectCode: string;
+  teacher: string;
+  teacherCode: string;
+  groupId: number;
+}
+
+export interface UpcomingExam {
+  examId: number;
+  /** YYYY-MM-DD */
+  date: string;
+  name: string;
+  subject: string;
+  subjectCode: string;
+  topic: string | null;
+  teacher: string;
+  teacherCode: string;
+}
+
+export interface ExamGrade {
+  examId: number;
+  /** YYYY-MM-DD */
+  date: string;
+  name: string;
+  subject: string;
+  subjectCode: string;
+  grade: string;
+  verbalGrade: string | null;
+  info: string | null;
+  teacher: string;
+  teacherCode: string;
+}
+
+export interface HomeworkItem {
+  /** YYYY-MM-DD */
+  date: string;
+  subject: string;
+  subjectCode: string;
+  homework: string;
+  teacher: string;
+  teacherCode: string;
+}
+
+export interface OverviewData {
+  schedule: ScheduleLesson[];
+  upcomingExams: UpcomingExam[];
+  grades: ExamGrade[];
+  homework: HomeworkItem[];
+  fetchedAt: Date;
+}

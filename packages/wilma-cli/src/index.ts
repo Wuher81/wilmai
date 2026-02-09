@@ -8,6 +8,7 @@ import {
   WilmaClient,
   listTenants,
   type MessageFolder,
+  type OverviewData,
   type TenantInfo,
   type WilmaProfile,
   type StudentInfo,
@@ -28,8 +29,13 @@ if (process.stdin.isTTY) {
 }
 
 const ACTIONS = [
+  { value: "summary", name: "Daily summary" },
+  { value: "schedule-today", name: "Today's schedule" },
+  { value: "schedule-tomorrow", name: "Tomorrow's schedule" },
+  { value: "homework", name: "Recent homework" },
+  { value: "exams", name: "Upcoming exams" },
+  { value: "grades", name: "Exam grades" },
   { value: "news", name: "List news" },
-  { value: "exams", name: "List exams" },
   { value: "messages", name: "List messages" },
   { value: "exit", name: "Exit" },
 ];
@@ -171,6 +177,7 @@ async function runInteractive(config: { profiles: StoredProfile[]; lastProfileId
 
     let nextAction = await selectOrCancel({
       message: "What do you want to view?",
+      pageSize: 15,
       choices: [
         ...ACTIONS.filter((a) => a.value !== "exit"),
         { value: "back", name: "Back to students" },
@@ -183,13 +190,38 @@ async function runInteractive(config: { profiles: StoredProfile[]; lastProfileId
     }
 
     while (nextAction !== "exit" && nextAction !== "back") {
-      if (nextAction === "news") {
-        await selectNewsToRead(client);
+      if (nextAction === "summary") {
+        console.clear();
+        await outputSummary(client, { days: 7, json: false });
+      }
+
+      if (nextAction === "schedule-today") {
+        console.clear();
+        await outputSchedule(client, { when: "today", json: false });
+      }
+
+      if (nextAction === "schedule-tomorrow") {
+        console.clear();
+        await outputSchedule(client, { when: "tomorrow", json: false });
+      }
+
+      if (nextAction === "homework") {
+        console.clear();
+        await outputHomework(client, { limit: 10, json: false });
       }
 
       if (nextAction === "exams") {
         console.clear();
-        await outputExams(client, { limit: 20, json: false });
+        await outputUpcomingExams(client, { limit: 20, json: false });
+      }
+
+      if (nextAction === "grades") {
+        console.clear();
+        await outputGrades(client, { limit: 20, json: false });
+      }
+
+      if (nextAction === "news") {
+        await selectNewsToRead(client);
       }
 
       if (nextAction === "messages") {
@@ -210,6 +242,7 @@ async function runInteractive(config: { profiles: StoredProfile[]; lastProfileId
 
       nextAction = await selectOrCancel({
         message: "What next?",
+        pageSize: 15,
         choices: [
           ...ACTIONS.filter((a) => a.value !== "exit"),
           { value: "back", name: "Back to students" },
@@ -518,7 +551,7 @@ async function handleCommand(
       ...profile,
       studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
     });
-    await outputExams(perStudentClient, {
+    await outputUpcomingExams(perStudentClient, {
       limit: flags.limit ?? 20,
       json: flags.json,
       label: studentInfo?.name ?? undefined,
@@ -526,27 +559,109 @@ async function handleCommand(
     return;
   }
 
-  console.log("Usage:");
-  console.log("  wilma kids list [--json]");
-  console.log("  wilma news list [--limit 20] [--student <id|name>] [--all-students] [--json]");
-  console.log("  wilma news read <id> [--student <id|name>] [--json]");
-  console.log("  wilma messages list [--folder inbox] [--limit 20] [--student <id|name>] [--all-students] [--json]");
-  console.log("  wilma messages read <id> [--student <id|name>] [--json]");
-  console.log("  wilma exams list [--limit 20] [--student <id|name>] [--all-students] [--json]");
-  console.log("  wilma update");
-  console.log("  wilma config clear");
-  console.log("  wilma --help | -h");
-  console.log("  wilma --version | -v");
+  if (command === "schedule") {
+    if (flags.allStudents) {
+      await outputAllOverviewCommand(profile, config, "schedule", flags);
+      return;
+    }
+    const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
+    if (!studentInfo && !profile.studentNumber) {
+      await printStudentSelectionHelp(profile, config);
+      return;
+    }
+    const perStudentClient = await WilmaClient.login({
+      ...profile,
+      studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
+    });
+    await outputSchedule(perStudentClient, {
+      when: (flags.when as "today" | "tomorrow" | "week") ?? "week",
+      json: flags.json,
+      label: studentInfo?.name ?? undefined,
+    });
+    return;
+  }
+
+  if (command === "homework") {
+    if (flags.allStudents) {
+      await outputAllOverviewCommand(profile, config, "homework", flags);
+      return;
+    }
+    const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
+    if (!studentInfo && !profile.studentNumber) {
+      await printStudentSelectionHelp(profile, config);
+      return;
+    }
+    const perStudentClient = await WilmaClient.login({
+      ...profile,
+      studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
+    });
+    await outputHomework(perStudentClient, {
+      limit: flags.limit ?? 10,
+      json: flags.json,
+      label: studentInfo?.name ?? undefined,
+    });
+    return;
+  }
+
+  if (command === "grades") {
+    if (flags.allStudents) {
+      await outputAllOverviewCommand(profile, config, "grades", flags);
+      return;
+    }
+    const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
+    if (!studentInfo && !profile.studentNumber) {
+      await printStudentSelectionHelp(profile, config);
+      return;
+    }
+    const perStudentClient = await WilmaClient.login({
+      ...profile,
+      studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
+    });
+    await outputGrades(perStudentClient, {
+      limit: flags.limit ?? 20,
+      json: flags.json,
+      label: studentInfo?.name ?? undefined,
+    });
+    return;
+  }
+
+  if (command === "summary") {
+    if (flags.allStudents) {
+      await outputAllOverviewCommand(profile, config, "summary", flags);
+      return;
+    }
+    const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
+    if (!studentInfo && !profile.studentNumber) {
+      await printStudentSelectionHelp(profile, config);
+      return;
+    }
+    const perStudentClient = await WilmaClient.login({
+      ...profile,
+      studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
+    });
+    await outputSummary(perStudentClient, {
+      days: flags.days ?? 7,
+      json: flags.json,
+      label: studentInfo?.name ?? undefined,
+    });
+    return;
+  }
+
+  printUsage();
 }
 
 function printUsage() {
   console.log("Usage:");
+  console.log("  wilma summary [--days 7] [--student <id|name>] [--all-students] [--json]");
+  console.log("  wilma schedule list [--when today|tomorrow|week] [--student <id|name>] [--all-students] [--json]");
+  console.log("  wilma homework list [--limit 10] [--student <id|name>] [--all-students] [--json]");
+  console.log("  wilma exams list [--limit 20] [--student <id|name>] [--all-students] [--json]");
+  console.log("  wilma grades list [--limit 20] [--student <id|name>] [--all-students] [--json]");
   console.log("  wilma kids list [--json]");
   console.log("  wilma news list [--limit 20] [--student <id|name>] [--all-students] [--json]");
   console.log("  wilma news read <id> [--student <id|name>] [--json]");
   console.log("  wilma messages list [--folder inbox] [--limit 20] [--student <id|name>] [--all-students] [--json]");
   console.log("  wilma messages read <id> [--student <id|name>] [--json]");
-  console.log("  wilma exams list [--limit 20] [--student <id|name>] [--all-students] [--json]");
   console.log("  wilma update");
   console.log("  wilma config clear");
   console.log("  wilma --help | -h");
@@ -581,7 +696,10 @@ async function getProfileForCommandNonInteractive(
 }
 
 function parseArgs(args: string[]) {
-  const [command, subcommand, ...rest] = args;
+  const [command, rawSubcommand, ...rawRest] = args;
+  // If "subcommand" is actually a flag, push it back into rest
+  const subcommand = rawSubcommand?.startsWith("--") ? undefined : rawSubcommand;
+  const rest = rawSubcommand?.startsWith("--") ? [rawSubcommand, ...rawRest] : rawRest;
   const flags: {
     json?: boolean;
     limit?: number;
@@ -590,6 +708,8 @@ function parseArgs(args: string[]) {
     student?: string;
     allStudents?: boolean;
     debug?: boolean;
+    when?: string;
+    days?: number;
   } = {};
   let i = 0;
   while (i < rest.length) {
@@ -624,6 +744,19 @@ function parseArgs(args: string[]) {
     }
     if (arg === "--folder") {
       flags.folder = rest[i + 1];
+      i += 2;
+      continue;
+    }
+    if (arg === "--when") {
+      flags.when = rest[i + 1];
+      i += 2;
+      continue;
+    }
+    if (arg === "--days") {
+      const value = Number(rest[i + 1]);
+      if (!Number.isNaN(value)) {
+        flags.days = value;
+      }
       i += 2;
       continue;
     }
@@ -820,6 +953,259 @@ async function outputExams(
     const prefix = opts.label ? `[${opts.label}] ` : "";
     console.log(`- ${prefix}${date} ${compactText(exam.subject)}`);
   });
+}
+
+/* ------------------------------------------------------------------ */
+/*  Overview-powered output functions                                  */
+/* ------------------------------------------------------------------ */
+
+function todayString(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function nextSchoolDay(from?: string): string {
+  const d = from ? new Date(from + "T12:00:00") : new Date();
+  d.setDate(d.getDate() + 1);
+  // Skip Saturday (6) and Sunday (0)
+  while (d.getDay() === 0 || d.getDay() === 6) {
+    d.setDate(d.getDate() + 1);
+  }
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function currentWeekBounds(): [string, string] {
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ...
+  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diffToMonday);
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return [fmt(monday), fmt(friday)];
+}
+
+const DAY_NAMES = ["Su", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+async function outputSchedule(
+  client: WilmaClient,
+  opts: { when: string; json?: boolean; label?: string }
+) {
+  const overview = await client.overview.get();
+  const when = opts.when || "week";
+
+  let startDate: string;
+  let endDate: string;
+
+  if (when === "today") {
+    startDate = endDate = todayString();
+  } else if (when === "tomorrow") {
+    startDate = endDate = nextSchoolDay();
+  } else {
+    [startDate, endDate] = currentWeekBounds();
+  }
+
+  const lessons = overview.schedule.filter(
+    (l) => l.date >= startDate && l.date <= endDate
+  );
+
+  if (opts.json) {
+    const result = when === "week"
+      ? { when, weekStart: startDate, weekEnd: endDate, lessons }
+      : { when, date: startDate, lessons };
+    console.log(JSON.stringify(result, null, 2));
+    return;
+  }
+
+  const prefix = opts.label ? `[${opts.label}] ` : "";
+  if (when === "today") {
+    console.log(`\n${prefix}Schedule for today (${startDate})`);
+  } else if (when === "tomorrow") {
+    console.log(`\n${prefix}Schedule for tomorrow (${startDate})`);
+  } else {
+    console.log(`\n${prefix}Schedule for ${startDate} – ${endDate}`);
+  }
+
+  if (!lessons.length) {
+    console.log("  No lessons found.");
+    return;
+  }
+
+  let currentDate = "";
+  for (const l of lessons) {
+    if (l.date !== currentDate) {
+      currentDate = l.date;
+      const d = new Date(l.date + "T12:00:00");
+      console.log(`  ${DAY_NAMES[d.getDay()]} ${l.date}`);
+    }
+    const teacher = l.teacherCode ? ` - ${l.teacher}` : "";
+    console.log(`    ${l.start}-${l.end}  ${l.subject}${teacher}`);
+  }
+}
+
+async function outputHomework(
+  client: WilmaClient,
+  opts: { limit: number; json?: boolean; label?: string }
+) {
+  const overview = await client.overview.get();
+  const slice = overview.homework.slice(0, opts.limit);
+  if (opts.json) {
+    console.log(JSON.stringify(slice, null, 2));
+    return;
+  }
+  const prefix = opts.label ? `[${opts.label}] ` : "";
+  console.log(`\n${prefix}Homework (${overview.homework.length})`);
+  slice.forEach((hw) => {
+    const text = compactText(hw.homework);
+    console.log(`- ${hw.date}  ${hw.subject}: ${text}`);
+  });
+}
+
+async function outputUpcomingExams(
+  client: WilmaClient,
+  opts: { limit: number; json?: boolean; label?: string }
+) {
+  const overview = await client.overview.get();
+  const slice = overview.upcomingExams.slice(0, opts.limit);
+  if (opts.json) {
+    console.log(JSON.stringify(slice, null, 2));
+    return;
+  }
+  const prefix = opts.label ? `[${opts.label}] ` : "";
+  console.log(`\n${prefix}Upcoming exams (${overview.upcomingExams.length})`);
+  slice.forEach((exam) => {
+    const topic = exam.topic ? ` — ${compactText(exam.topic)}` : "";
+    console.log(`- ${exam.date}  ${exam.subject}: ${exam.name}${topic}`);
+  });
+}
+
+async function outputGrades(
+  client: WilmaClient,
+  opts: { limit: number; json?: boolean; label?: string }
+) {
+  const overview = await client.overview.get();
+  const slice = overview.grades.slice(0, opts.limit);
+  if (opts.json) {
+    console.log(JSON.stringify(slice, null, 2));
+    return;
+  }
+  const prefix = opts.label ? `[${opts.label}] ` : "";
+  console.log(`\n${prefix}Grades (${overview.grades.length})`);
+  slice.forEach((g) => {
+    console.log(`- ${g.date}  ${g.subject}: ${g.name} — ${g.grade}`);
+  });
+}
+
+async function outputSummary(
+  client: WilmaClient,
+  opts: { days: number; json?: boolean; label?: string }
+) {
+  const [overview, news, messages] = await Promise.all([
+    client.overview.get(),
+    client.news.list(),
+    client.messages.list("inbox"),
+  ]);
+
+  const today = todayString();
+  const tomorrow = nextSchoolDay();
+  const cutoffDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - opts.days);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const homeworkCutoff = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 3);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+
+  const todaySchedule = overview.schedule.filter((l) => l.date === today);
+  const tomorrowSchedule = overview.schedule.filter((l) => l.date === tomorrow);
+  const upcomingExams = overview.upcomingExams;
+  const recentHomework = overview.homework.filter((h) => h.date >= homeworkCutoff);
+  const recentNews = news
+    .filter((n) => n.published && n.published.toISOString().slice(0, 10) >= cutoffDate)
+    .slice(0, 5);
+  const recentMessages = messages
+    .filter((m) => m.sentAt.toISOString().slice(0, 10) >= cutoffDate)
+    .slice(0, 5);
+
+  if (opts.json) {
+    console.log(JSON.stringify({
+      generatedAt: new Date().toISOString(),
+      student: opts.label ?? null,
+      todaySchedule,
+      tomorrowSchedule,
+      upcomingExams,
+      recentHomework,
+      recentNews: recentNews.map((n) => ({
+        wilmaId: n.wilmaId,
+        title: n.title,
+        published: n.published?.toISOString() ?? null,
+      })),
+      recentMessages: recentMessages.map((m) => ({
+        wilmaId: m.wilmaId,
+        subject: m.subject,
+        sentAt: m.sentAt.toISOString(),
+        senderName: m.senderName ?? null,
+      })),
+    }, null, 2));
+    return;
+  }
+
+  const label = opts.label ? ` for ${opts.label}` : "";
+  console.log(`\nSummary${label} (${today})`);
+
+  console.log(`\nTODAY (${today})`);
+  if (todaySchedule.length) {
+    todaySchedule.forEach((l) => {
+      console.log(`  ${l.start}-${l.end}  ${l.subject} (${l.subjectCode})`);
+    });
+  } else {
+    console.log("  No lessons today.");
+  }
+
+  console.log(`\nTOMORROW (${tomorrow})`);
+  if (tomorrowSchedule.length) {
+    tomorrowSchedule.forEach((l) => {
+      console.log(`  ${l.start}-${l.end}  ${l.subject} (${l.subjectCode})`);
+    });
+  } else {
+    console.log("  No lessons tomorrow.");
+  }
+
+  if (upcomingExams.length) {
+    console.log("\nUPCOMING EXAMS");
+    upcomingExams.forEach((exam) => {
+      const topic = exam.topic ? ` — ${compactText(exam.topic)}` : "";
+      console.log(`  ${exam.date}  ${exam.subject}: ${exam.name}${topic}`);
+    });
+  }
+
+  if (recentHomework.length) {
+    console.log("\nRECENT HOMEWORK");
+    recentHomework.forEach((hw) => {
+      console.log(`  ${hw.date}  ${hw.subject}: ${compactText(hw.homework)}`);
+    });
+  }
+
+  if (recentNews.length) {
+    console.log(`\nNEWS (last ${opts.days} days)`);
+    recentNews.forEach((n) => {
+      const date = n.published ? n.published.toISOString().slice(0, 10) : "";
+      console.log(`  ${date}  ${compactText(n.title)} (id:${n.wilmaId})`);
+    });
+  }
+
+  if (recentMessages.length) {
+    console.log(`\nMESSAGES (last ${opts.days} days)`);
+    recentMessages.forEach((m) => {
+      const date = m.sentAt.toISOString().slice(0, 10);
+      console.log(`  ${date}  ${compactText(m.subject)} (id:${m.wilmaId})`);
+    });
+  }
 }
 
 async function outputMessages(
@@ -1023,6 +1409,9 @@ async function resolveStudentForFlags(
     const students = await getStudentsForCommand(profile, config);
     const exact = students.find((s) => s.studentNumber === student);
     if (exact) return exact;
+    const needle = student.toLowerCase();
+    const substring = students.find((s) => s.name.toLowerCase().includes(needle));
+    if (substring) return substring;
     const match = students.find((s) => fuzzyIncludes(s.name, student));
     if (match) return match;
     // No match found - show available students and exit
@@ -1106,8 +1495,8 @@ async function outputAllExams(
   const results = [];
   for (const student of students) {
     const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber });
-    const exams = await client.exams.list();
-    results.push({ student, items: exams.slice(0, limit) });
+    const overview = await client.overview.get();
+    results.push({ student, items: overview.upcomingExams.slice(0, limit) });
   }
   if (json) {
     console.log(JSON.stringify({ students: results }, null, 2));
@@ -1116,10 +1505,82 @@ async function outputAllExams(
   results.forEach((entry) => {
     console.log(`\n[${entry.student.name}]`);
     entry.items.forEach((exam) => {
-      const date = exam.examDate.toISOString().slice(0, 10);
-      console.log(`- ${date} ${exam.subject}`);
+      const topic = exam.topic ? ` — ${compactText(exam.topic)}` : "";
+      console.log(`- ${exam.date} ${exam.subject}: ${exam.name}${topic}`);
     });
   });
+}
+
+async function outputAllOverviewCommand(
+  profile: WilmaProfile,
+  config: { profiles: StoredProfile[]; lastProfileId?: string | null },
+  command: "schedule" | "homework" | "grades" | "summary",
+  flags: { json?: boolean; limit?: number; when?: string; days?: number }
+) {
+  const students = await getStudentsForCommand(profile, config);
+  if (command === "summary") {
+    // Summary handles its own multi-student output
+    for (const student of students) {
+      const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber });
+      await outputSummary(client, {
+        days: flags.days ?? 7,
+        json: flags.json,
+        label: student.name,
+      });
+    }
+    return;
+  }
+
+  const results: { student: StudentInfo; data: unknown }[] = [];
+  for (const student of students) {
+    const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber });
+    const overview = await client.overview.get();
+    if (command === "schedule") {
+      const when = flags.when || "week";
+      let startDate: string, endDate: string;
+      if (when === "today") {
+        startDate = endDate = todayString();
+      } else if (when === "tomorrow") {
+        startDate = endDate = nextSchoolDay();
+      } else {
+        [startDate, endDate] = currentWeekBounds();
+      }
+      results.push({
+        student,
+        data: overview.schedule.filter((l) => l.date >= startDate && l.date <= endDate),
+      });
+    } else if (command === "homework") {
+      results.push({ student, data: overview.homework.slice(0, flags.limit ?? 10) });
+    } else if (command === "grades") {
+      results.push({ student, data: overview.grades.slice(0, flags.limit ?? 20) });
+    }
+  }
+
+  if (flags.json) {
+    console.log(JSON.stringify({ students: results.map((r) => ({ student: r.student, items: r.data })) }, null, 2));
+    return;
+  }
+  for (const r of results) {
+    console.log(`\n[${r.student.name}]`);
+    const items = r.data as any[];
+    if (!items.length) {
+      console.log("  (none)");
+      continue;
+    }
+    if (command === "schedule") {
+      for (const l of items) {
+        console.log(`  ${l.date} ${l.start}-${l.end}  ${l.subject} - ${l.teacher}`);
+      }
+    } else if (command === "homework") {
+      for (const hw of items) {
+        console.log(`  ${hw.date}  ${hw.subject}: ${compactText(hw.homework)}`);
+      }
+    } else if (command === "grades") {
+      for (const g of items) {
+        console.log(`  ${g.date}  ${g.subject}: ${g.name} — ${g.grade}`);
+      }
+    }
+  }
 }
 
 async function printStudentSelectionHelp(
