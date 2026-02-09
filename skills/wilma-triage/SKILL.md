@@ -69,9 +69,9 @@ Wilma messages come from different sources and have very different signal-to-noi
 - **Viikkoviesti / weekly letter** (from class teacher) — **HIGH VALUE.** These are the class teacher's weekly updates. They look like casual newsletters but frequently contain buried actionable items: upcoming exams, materials to bring, schedule changes, field trips, deadlines. **Always read the full content.** Never skip based on subject line.
 - **Teacher messages** (from subject teachers) — Usually about specific exams, homework, or class events. High signal.
 - **School office / rehtori messages** — Administrative: schedule changes, events, policy updates. Medium signal — skim for actions.
-- **Kuukausitiedote / monthly newsletter** (from school office) — Usually low-signal summaries. Safe to skip unless a specific actionable item stands out.
-- **City-wide notices** (from Helsinki/municipality) — Health campaigns, transport info, surveys. Almost always noise for daily triage.
-- **Parent union / vanhempainyhdistys** — Fundraising, volunteer calls. Skip unless deadline-driven.
+- **Kuukausitiedote / monthly newsletter** (from school office) — **Read these.** They typically contain important dates: holidays, school year start/end, event schedules, enrollment deadlines. Don't skip based on the generic subject line.
+- **City-wide notices** (from Helsinki/municipality) — Health campaigns, transport info, surveys. Usually noise for daily triage. Skim subject, skip unless clearly actionable.
+- **Parent union / vanhempainyhdistys** — Low signal by default (fundraising, volunteer calls). However, check MEMORY.md — if the parent is actively involved in the union, these become high priority.
 
 **Rule of thumb:** If a message is from a teacher (class teacher or subject teacher), always read it. If it's from the school office or city, skim the subject and skip unless it's clearly actionable.
 
@@ -96,12 +96,10 @@ Wilma messages come from different sources and have very different signal-to-noi
 Weekly letters from class teachers often contain actionable items buried in the text: exams, materials to bring, schedule changes, field trips. **Always read the full content** of viikkoviesti messages — do not skip based on subject line alone.
 
 ### Skip Silently
-- Parent union / association meetings
 - Concerts, cultural performances (FYI only)
 - Generic "welcome back" or seasonal greetings
-- Fundraising campaigns (unless deadline-driven)
-- Monthly newsletters / kuukausitiedote from the school office (unless contains specific actionable item)
-- City-wide informational notices (health campaigns, transport info)
+- City-wide informational notices (health campaigns, transport info, surveys)
+- Parent union messages (unless user is actively involved — check MEMORY.md)
 
 **Check MEMORY.md for additional skip/report rules** the user has provided over time (e.g., subject overrides, school-specific filtering).
 
