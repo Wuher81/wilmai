@@ -448,6 +448,7 @@ async function handleCommand(
 
   if (command === "news") {
     if (subcommand === "read" && flags.id) {
+      const newsId = parseReadId(flags.id, "news");
       if (!flags.student) {
         const students = await getStudentsForCommand(profile, config);
         if (students.length > 1) {
@@ -465,7 +466,7 @@ async function handleCommand(
         ...profile,
         studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
       });
-      await outputNewsItem(perStudentClient, Number(flags.id), flags.json);
+      await outputNewsItem(perStudentClient, newsId, flags.json);
       return;
     }
     if (flags.allStudents) {
@@ -491,6 +492,7 @@ async function handleCommand(
 
   if (command === "messages") {
     if (subcommand === "read" && flags.id) {
+      const messageId = parseReadId(flags.id, "message");
       if (!flags.student) {
         const students = await getStudentsForCommand(profile, config);
         if (students.length > 1) {
@@ -508,7 +510,7 @@ async function handleCommand(
         ...profile,
         studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
       });
-      await outputMessageItem(perStudentClient, Number(flags.id), flags.json);
+      await outputMessageItem(perStudentClient, messageId, flags.json);
       return;
     }
     if (flags.allStudents) {
@@ -768,6 +770,19 @@ function parseArgs(args: string[]) {
     i += 1;
   }
   return { command, subcommand, flags };
+}
+
+function parseReadId(raw: string | undefined, entity: string): number {
+  if (!raw) {
+    console.error(`Missing ${entity} id.`);
+    process.exit(1);
+  }
+  const id = Number(raw);
+  if (!Number.isInteger(id) || id <= 0) {
+    console.error(`Invalid ${entity} id "${raw}". Expected a positive integer.`);
+    process.exit(1);
+  }
+  return id;
 }
 
 async function readPackageVersion(): Promise<string> {
@@ -1108,11 +1123,78 @@ async function outputSummary(
     client.messages.list("inbox"),
   ]);
 
+  const summary = buildSummaryData(overview, news, messages, opts.days, opts.label);
+
+  if (opts.json) {
+    console.log(JSON.stringify(summary, null, 2));
+    return;
+  }
+
+  const label = summary.student ? ` for ${summary.student}` : "";
+  console.log(`\nSummary${label} (${summary.today})`);
+
+  console.log(`\nTODAY (${summary.today})`);
+  if (summary.todaySchedule.length) {
+    summary.todaySchedule.forEach((l) => {
+      console.log(`  ${l.start}-${l.end}  ${l.subject} (${l.subjectCode})`);
+    });
+  } else {
+    console.log("  No lessons today.");
+  }
+
+  console.log(`\nTOMORROW (${summary.tomorrow})`);
+  if (summary.tomorrowSchedule.length) {
+    summary.tomorrowSchedule.forEach((l) => {
+      console.log(`  ${l.start}-${l.end}  ${l.subject} (${l.subjectCode})`);
+    });
+  } else {
+    console.log("  No lessons tomorrow.");
+  }
+
+  if (summary.upcomingExams.length) {
+    console.log("\nUPCOMING EXAMS");
+    summary.upcomingExams.forEach((exam) => {
+      const topic = exam.topic ? ` — ${compactText(exam.topic)}` : "";
+      console.log(`  ${exam.date}  ${exam.subject}: ${exam.name}${topic}`);
+    });
+  }
+
+  if (summary.recentHomework.length) {
+    console.log("\nRECENT HOMEWORK");
+    summary.recentHomework.forEach((hw) => {
+      console.log(`  ${hw.date}  ${hw.subject}: ${compactText(hw.homework)}`);
+    });
+  }
+
+  if (summary.recentNews.length) {
+    console.log(`\nNEWS (last ${opts.days} days)`);
+    summary.recentNews.forEach((n) => {
+      const date = n.published ? n.published.slice(0, 10) : "";
+      console.log(`  ${date}  ${compactText(n.title)} (id:${n.wilmaId})`);
+    });
+  }
+
+  if (summary.recentMessages.length) {
+    console.log(`\nMESSAGES (last ${opts.days} days)`);
+    summary.recentMessages.forEach((m) => {
+      const date = m.sentAt.slice(0, 10);
+      console.log(`  ${date}  ${compactText(m.subject)} (id:${m.wilmaId})`);
+    });
+  }
+}
+
+function buildSummaryData(
+  overview: OverviewData,
+  news: Awaited<ReturnType<WilmaClient["news"]["list"]>>,
+  messages: Awaited<ReturnType<WilmaClient["messages"]["list"]>>,
+  days: number,
+  studentLabel?: string
+) {
   const today = todayString();
   const tomorrow = nextSchoolDay();
   const cutoffDate = (() => {
     const d = new Date();
-    d.setDate(d.getDate() - opts.days);
+    d.setDate(d.getDate() - days);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   })();
   const homeworkCutoff = (() => {
@@ -1127,85 +1209,34 @@ async function outputSummary(
   const recentHomework = overview.homework.filter((h) => h.date >= homeworkCutoff);
   const recentNews = news
     .filter((n) => n.published && n.published.toISOString().slice(0, 10) >= cutoffDate)
-    .slice(0, 5);
+    .slice(0, 5)
+    .map((n) => ({
+      wilmaId: n.wilmaId,
+      title: n.title,
+      published: n.published?.toISOString() ?? null,
+    }));
   const recentMessages = messages
     .filter((m) => m.sentAt.toISOString().slice(0, 10) >= cutoffDate)
-    .slice(0, 5);
+    .slice(0, 5)
+    .map((m) => ({
+      wilmaId: m.wilmaId,
+      subject: m.subject,
+      sentAt: m.sentAt.toISOString(),
+      senderName: m.senderName ?? null,
+    }));
 
-  if (opts.json) {
-    console.log(JSON.stringify({
-      generatedAt: new Date().toISOString(),
-      student: opts.label ?? null,
-      todaySchedule,
-      tomorrowSchedule,
-      upcomingExams,
-      recentHomework,
-      recentNews: recentNews.map((n) => ({
-        wilmaId: n.wilmaId,
-        title: n.title,
-        published: n.published?.toISOString() ?? null,
-      })),
-      recentMessages: recentMessages.map((m) => ({
-        wilmaId: m.wilmaId,
-        subject: m.subject,
-        sentAt: m.sentAt.toISOString(),
-        senderName: m.senderName ?? null,
-      })),
-    }, null, 2));
-    return;
-  }
-
-  const label = opts.label ? ` for ${opts.label}` : "";
-  console.log(`\nSummary${label} (${today})`);
-
-  console.log(`\nTODAY (${today})`);
-  if (todaySchedule.length) {
-    todaySchedule.forEach((l) => {
-      console.log(`  ${l.start}-${l.end}  ${l.subject} (${l.subjectCode})`);
-    });
-  } else {
-    console.log("  No lessons today.");
-  }
-
-  console.log(`\nTOMORROW (${tomorrow})`);
-  if (tomorrowSchedule.length) {
-    tomorrowSchedule.forEach((l) => {
-      console.log(`  ${l.start}-${l.end}  ${l.subject} (${l.subjectCode})`);
-    });
-  } else {
-    console.log("  No lessons tomorrow.");
-  }
-
-  if (upcomingExams.length) {
-    console.log("\nUPCOMING EXAMS");
-    upcomingExams.forEach((exam) => {
-      const topic = exam.topic ? ` — ${compactText(exam.topic)}` : "";
-      console.log(`  ${exam.date}  ${exam.subject}: ${exam.name}${topic}`);
-    });
-  }
-
-  if (recentHomework.length) {
-    console.log("\nRECENT HOMEWORK");
-    recentHomework.forEach((hw) => {
-      console.log(`  ${hw.date}  ${hw.subject}: ${compactText(hw.homework)}`);
-    });
-  }
-
-  if (recentNews.length) {
-    console.log(`\nNEWS (last ${opts.days} days)`);
-    recentNews.forEach((n) => {
-      const date = n.published ? n.published.toISOString().slice(0, 10) : "";
-      console.log(`  ${date}  ${compactText(n.title)} (id:${n.wilmaId})`);
-    });
-  }
-
-  if (recentMessages.length) {
-    console.log(`\nMESSAGES (last ${opts.days} days)`);
-    recentMessages.forEach((m) => {
-      const date = m.sentAt.toISOString().slice(0, 10);
-      console.log(`  ${date}  ${compactText(m.subject)} (id:${m.wilmaId})`);
-    });
-  }
+  return {
+    generatedAt: new Date().toISOString(),
+    student: studentLabel ?? null,
+    today,
+    tomorrow,
+    todaySchedule,
+    tomorrowSchedule,
+    upcomingExams,
+    recentHomework,
+    recentNews,
+    recentMessages,
+  };
 }
 
 async function outputMessages(
@@ -1519,12 +1550,39 @@ async function outputAllOverviewCommand(
 ) {
   const students = await getStudentsForCommand(profile, config);
   if (command === "summary") {
-    // Summary handles its own multi-student output
+    if (flags.json) {
+      const summaries = [];
+      for (const student of students) {
+        const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber });
+        const [overview, news, messages] = await Promise.all([
+          client.overview.get(),
+          client.news.list(),
+          client.messages.list("inbox"),
+        ]);
+        summaries.push({
+          student,
+          summary: buildSummaryData(overview, news, messages, flags.days ?? 7, student.name),
+        });
+      }
+      console.log(
+        JSON.stringify(
+          {
+            generatedAt: new Date().toISOString(),
+            students: summaries,
+          },
+          null,
+          2
+        )
+      );
+      return;
+    }
+
+    // Human-readable summary output per student
     for (const student of students) {
       const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber });
       await outputSummary(client, {
         days: flags.days ?? 7,
-        json: flags.json,
+        json: false,
         label: student.name,
       });
     }

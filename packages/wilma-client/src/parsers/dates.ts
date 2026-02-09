@@ -1,10 +1,16 @@
 export function parseWilmaTimestamp(value: unknown): Date {
   if (value === null || value === undefined) {
-    return new Date();
+    return fallbackDate();
   }
 
   if (typeof value === "number") {
-    return new Date(value * 1000);
+    if (!Number.isFinite(value)) {
+      return fallbackDate();
+    }
+    // Wilma can provide Unix seconds or milliseconds.
+    // Values >= 1e12 are treated as milliseconds.
+    const millis = Math.abs(value) >= 1_000_000_000_000 ? value : value * 1000;
+    return new Date(millis);
   }
 
   const raw = String(value).trim();
@@ -95,5 +101,11 @@ export function parseWilmaTimestamp(value: unknown): Date {
     return candidate;
   }
 
-  return now;
+  return fallbackDate();
+}
+
+function fallbackDate(): Date {
+  // Keep unknown timestamps deterministic and old so recency filters
+  // do not treat undated items as fresh.
+  return new Date(0);
 }

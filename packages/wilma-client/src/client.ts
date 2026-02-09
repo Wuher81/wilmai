@@ -106,9 +106,16 @@ export class WilmaClient {
 
   exams = {
     list: async (opts?: { start?: string; end?: string }): Promise<Exam[]> => {
-      const startQs = opts?.start ? `?start=${opts.start}` : "";
-      const endQs = opts?.end ? `&end=${opts.end}` : "";
-      const resp = await this.session.get(`/exams/calendar${startQs}${endQs}`);
+      const params = new URLSearchParams();
+      if (opts?.start) {
+        params.set("start", opts.start);
+      }
+      if (opts?.end) {
+        params.set("end", opts.end);
+      }
+      const query = params.toString();
+      const path = query ? `/exams/calendar?${query}` : "/exams/calendar";
+      const resp = await this.session.get(path);
       const text = await resp.text();
       return parseExamsHtml(text);
     },
