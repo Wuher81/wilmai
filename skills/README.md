@@ -8,4 +8,5 @@ npx skills add aikarjal/wilmai
 ```
 
 ## Available skills
-- `wilma` — Use the Wilma CLI to fetch kids, messages, news, and exams.
+- `wilma` — Use the Wilma CLI to fetch schedules, homework, exams, grades, messages, and news.
+- `wilma-triage` — Daily triage workflow: filter actionable items, sync exams to Google Calendar, report to chat. Edit `references/family.md` with your details.
