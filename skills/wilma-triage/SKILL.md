@@ -1,7 +1,27 @@
 ---
 name: wilma-triage
-version: 1.0.0
+version: 1.0.1
 description: Daily triage of Wilma school notifications for Finnish parents. Fetches exams, messages, news, schedules, and homework — filters for actionable items, syncs exams to Google Calendar, and reports via chat. Requires the `wilma` skill and `gog` CLI (or `gog` skill from ClawHub) for calendar access.
+metadata:
+  {
+    "openclaw":
+      {
+        "requires":
+          {
+            "bins": ["wilma", "gog"],
+            "skills": ["wilma"],
+            "configPaths":
+              [
+                "~/.config/wilmai/config.json",
+                "~/Library/Application Support/gogcli/",
+              ],
+          },
+        "credentials":
+          {
+            "note": "Requires local Wilma credentials (~/.config/wilmai/config.json) for school data access and gog CLI auth (Google OAuth) for calendar sync. Both must be set up interactively before use.",
+          },
+      },
+  }
 ---
 
 # Wilma Triage
