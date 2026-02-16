@@ -1,7 +1,32 @@
 ---
 name: wilma
-version: 1.1.1
+version: 1.2.0
 description: Access Finland's Wilma school system from AI agents. Fetch schedules, homework, exams, grades, messages, and news via the wilma CLI. Start with `wilma summary --json` for a full daily briefing, or drill into specific data with individual commands.
+metadata:
+  {
+    "openclaw":
+      {
+        "requires":
+          {
+            "bins": ["wilma"],
+            "configPaths": ["~/.config/wilmai/config.json"],
+          },
+        "install":
+          [
+            {
+              "id": "node",
+              "kind": "node",
+              "package": "@wilm-ai/wilma-cli",
+              "bins": ["wilma"],
+              "label": "Install Wilma CLI (npm)",
+            },
+          ],
+        "credentials":
+          {
+            "note": "Requires a local Wilma config file (~/.config/wilmai/config.json or $XDG_CONFIG_HOME/wilmai/config.json) created by running the CLI interactively once. This stores Wilma session credentials for accessing student data.",
+          },
+      },
+  }
 ---
 
 # Wilma Skill
