@@ -8,7 +8,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "WilmAI — Wilma access for AI agents",
+  title: "WilmAI — School data for AI agents",
   description:
     "Run Wilma from the CLI and wire it into agents like OpenAI, Claude Code, and OpenClaw."
 };

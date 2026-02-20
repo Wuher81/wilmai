@@ -1,22 +1,19 @@
 import Image from "next/image";
 import QuickStart from "../components/QuickStart";
 
-const examples = `wilma summary --student \"Kiia\" --json\nwilma schedule list --when tomorrow --json\nwilma homework list --all-students --json\nwilma exams list --student \"Kiia\" --json\nwilma grades list --all-students --json`;
-
 export default function HomePage() {
   return (
     <main>
       <header>
-        <div className="brand">
-          <Image
-            src="/wilmai-logo.png"
-            alt="WilmAI"
-            width={1024}
-            height={1024}
-            className="logo"
-            priority
-          />
-        </div>
+        <div className="header-spacer" />
+        <Image
+          src="/wilmai-mascot.png"
+          alt="WilmAI mascot"
+          width={1024}
+          height={1024}
+          className="hero-mascot"
+          priority
+        />
         <div className="nav-links">
           <a
             className="github-btn"
@@ -44,14 +41,26 @@ export default function HomePage() {
             width="130"
             height="30"
           />
+          <a
+            className="github-btn"
+            href="https://clawhub.ai/aikarjal/wilma"
+            target="_blank"
+            rel="noreferrer"
+          >
+            🦞 ClawHub
+          </a>
         </div>
       </header>
 
       <section className="hero">
         <h1>Wilma access for <span className="gradient-text">AI agents</span>.</h1>
+        <p className="disclaimer">
+          This is an independent open-source project by a parent, not affiliated with,
+          endorsed by, or connected to Visma or the official Wilma service.
+        </p>
         <p className="hero-sub">
-          Schedules, homework, exams, grades, messages, and news from Wilma.
-          One command gives your agent a full daily briefing.
+          An open-source CLI that lets AI agents read schedules, homework, exams,
+          grades, messages, and news from Wilma. One command gives a full daily briefing.
         </p>
         <div className="hero-actions">
           <a className="button primary" href="#quickstart">
@@ -120,54 +129,60 @@ MESSAGES (last 7 days)
             <span>Your credentials are stored locally for fast re-use.</span>
           </div>
           <div className="step">
-            <strong>3. Query any child</strong>
+            <strong>3. Query your kids</strong>
             <span>Use JSON output or let your agent do the filtering.</span>
           </div>
         </div>
       </section>
 
       <section className="section">
-        <h2>Highlights</h2>
+        <h2>What can I do with Wilma CLI?</h2>
+        <p className="lead">
+          Run the CLI interactively or let your AI agent call the right command automatically.
+          Every command works with multiple students and returns structured JSON for agents.
+        </p>
         <div className="cards">
           <div className="card">
             <h3>Daily briefing</h3>
-            <p>One command surfaces schedule, homework, exams, news, and messages.</p>
+            <p className="card-prompt">&quot;What do my kids have going on at school this week?&quot;</p>
+            <code className="cmd">wilma summary</code>
           </div>
           <div className="card">
-            <h3>Schedule & homework</h3>
-            <p>What classes are tomorrow? What homework is due? Answered instantly.</p>
+            <h3>Tomorrow&apos;s schedule</h3>
+            <p className="card-prompt">&quot;What classes does Kiia have tomorrow?&quot;</p>
+            <code className="cmd">wilma schedule</code>
           </div>
           <div className="card">
-            <h3>Exams & grades</h3>
-            <p>Upcoming exams with study topics. Past results with grades.</p>
+            <h3>Homework check</h3>
+            <p className="card-prompt">&quot;Is there any homework due this week?&quot;</p>
+            <code className="cmd">wilma homework</code>
           </div>
           <div className="card">
-            <h3>Messages & news</h3>
-            <p>Field trips, swim classes, schedule changes — buried info surfaced automatically.</p>
+            <h3>Upcoming exams</h3>
+            <p className="card-prompt">&quot;Are there any exams coming up? What should she study?&quot;</p>
+            <code className="cmd">wilma exams</code>
           </div>
           <div className="card">
-            <h3>Multi-kid profiles</h3>
-            <p>All your children in one command with --all-students.</p>
+            <h3>Grades</h3>
+            <p className="card-prompt">&quot;How did the last exams go?&quot;</p>
+            <code className="cmd">wilma grades</code>
           </div>
           <div className="card">
-            <h3>Agent-ready JSON</h3>
-            <p>Every command returns clean structured data with --json.</p>
+            <h3>Messages</h3>
+            <p className="card-prompt">&quot;Any new messages from school?&quot;</p>
+            <code className="cmd">wilma messages</code>
           </div>
           <div className="card">
-            <h3>Local only</h3>
-            <p>No backend server, no data sync, no vendor lock-in.</p>
+            <h3>School news</h3>
+            <p className="card-prompt">&quot;What&apos;s happening at school this week?&quot;</p>
+            <code className="cmd">wilma news</code>
+          </div>
+          <div className="card">
+            <h3>Multi-kid families</h3>
+            <p className="card-prompt">&quot;Give me a summary for all my children.&quot;</p>
+            <code className="cmd">--all-students</code>
           </div>
         </div>
-      </section>
-
-      <section className="section examples">
-        <h2>Examples</h2>
-        <div className="code-block">
-          <pre>{examples}</pre>
-        </div>
-        <p className="lead" style={{ marginTop: "16px" }}>
-          Agent prompt: &quot;What do my kids have going on at school this week?&quot;
-        </p>
       </section>
 
       <section className="section">
@@ -185,13 +200,25 @@ MESSAGES (last 7 days)
             <h3>What if my tenant changes?</h3>
             <p>Run login again and select a different tenant.</p>
           </div>
+          <div className="card">
+            <h3>Is this officially endorsed by Wilma or Visma?</h3>
+            <p>No. This is a hobby project made by a parent who was frustrated with the Wilma app. It is not officially supported or endorsed by Visma or the Wilma service.</p>
+          </div>
+          <div className="card">
+            <h3>Is this secure?</h3>
+            <p>Your credentials are stored locally on your computer. We don&apos;t store any information outside of your control. It&apos;s up to you to decide how to handle them.</p>
+          </div>
+          <div className="card">
+            <h3>What about data security and compliance?</h3>
+            <p>The CLI accesses the same data as the official Wilma app or website that parents already use. It&apos;s up to you to decide how it is appropriate to use that data.</p>
+          </div>
         </div>
       </section>
 
       <footer className="footer">
         <Image
-          src="/wilmai-logo.png"
-          alt="WilmAI"
+          src="/wilmai-mascot.png"
+          alt="WilmAI mascot"
           width={1024}
           height={1024}
           className="footer-logo"
