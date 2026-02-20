@@ -4,14 +4,16 @@
 
 # wilmai
 
-**wilmai** (wilm.ai) brings the Finnish **Wilma** school app to your terminal and to your AI agents.
+**wilmai** (wilm.ai) is an independent, open-source CLI that reads data from Finland's Wilma school system — schedules, homework, exams, grades, messages, and news.
 
-Use it as a **CLI for parents** to quickly scan messages, news, and exams across kids — and as a **skill/extension** for AI agents (OpenClaw, Claude, etc.) so they can help you keep up with school life.
+Use it **interactively as a parent** to quickly scan what matters across your kids, or wire it into **AI agents** (OpenClaw, Claude Code, etc.) as a skill so they can help you keep up with school life.
+
+> **Disclaimer:** This is an independent open-source project by a parent, not affiliated with, endorsed by, or connected to Visma or the official Wilma service.
 
 ## Why
 - Parents need a fast, reliable way to check **what matters today**.
-- Agents need a stable, scriptable interface to Wilma so they can summarize, remind, and assist.
-- Wilma is multi‑tenant and non‑standard — wilmai makes it consistent.
+- AI agents need a stable, scriptable interface so they can summarize, remind, and assist.
+- Works across all Wilma tenants with a consistent JSON output.
 
 ## What’s inside
 - `packages/wilma-client` – TypeScript Wilma client (auth + parsing + tenant list)
@@ -53,6 +55,8 @@ Config is stored in `~/.config/wilmai/config.json` (or `$XDG_CONFIG_HOME/wilmai/
 Your Wilma credentials are stored locally in `~/.config/wilmai/config.json` (or `$XDG_CONFIG_HOME/wilmai/config.json`) after first login. The password is obfuscated (not encrypted) for convenience — this is a personal productivity tool, not a vault.
 
 **Do not share your config file.** If you're on a shared machine, consider deleting the config after use (`rm -rf ~/.config/wilmai`).
+
+The CLI accesses the same data as the official Wilma app or website. It is your responsibility to handle that data appropriately.
 
 ## Vision
 wilmai is designed to be **open‑source**, **portable**, and **agent‑friendly**:
