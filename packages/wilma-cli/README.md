@@ -26,13 +26,16 @@ Combines today's and tomorrow's schedule, upcoming exams, recent homework, news,
 
 ### Schedule
 ```bash
-wilma schedule list [--when today|tomorrow|week] [--date YYYY-MM-DD] [--student <id|name>] [--all-students] [--json]
+wilma schedule list [--when today|tomorrow|week] [--date YYYY-MM-DD] [--weekday mon|tue|wed|thu|fri|sat|sun] [--student <id|name>] [--all-students] [--json]
 ```
 
 Examples:
 ```bash
-# Specific day (e.g. Wednesday)
+# Specific day by date
 wilma schedule list --date 2026-02-25 --student "Stella" --json
+
+# Next Thursday (also accepts Finnish short forms like to/ke/pe)
+wilma schedule list --weekday thu --student "Stella" --json
 
 # Tomorrow
 wilma schedule list --when tomorrow --student "Stella" --json
