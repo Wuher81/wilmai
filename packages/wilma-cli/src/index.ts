@@ -577,6 +577,7 @@ async function handleCommand(
     });
     await outputSchedule(perStudentClient, {
       when: (flags.when as "today" | "tomorrow" | "week") ?? "week",
+      date: flags.date,
       json: flags.json,
       label: studentInfo?.name ?? undefined,
     });
@@ -655,7 +656,7 @@ async function handleCommand(
 function printUsage() {
   console.log("Usage:");
   console.log("  wilma summary [--days 7] [--student <id|name>] [--all-students] [--json]");
-  console.log("  wilma schedule list [--when today|tomorrow|week] [--student <id|name>] [--all-students] [--json]");
+  console.log("  wilma schedule list [--when today|tomorrow|week] [--date YYYY-MM-DD] [--student <id|name>] [--all-students] [--json]");
   console.log("  wilma homework list [--limit 10] [--student <id|name>] [--all-students] [--json]");
   console.log("  wilma exams list [--limit 20] [--student <id|name>] [--all-students] [--json]");
   console.log("  wilma grades list [--limit 20] [--student <id|name>] [--all-students] [--json]");
@@ -711,6 +712,7 @@ function parseArgs(args: string[]) {
     allStudents?: boolean;
     debug?: boolean;
     when?: string;
+    date?: string;
     days?: number;
   } = {};
   let i = 0;
@@ -762,6 +764,11 @@ function parseArgs(args: string[]) {
       i += 2;
       continue;
     }
+    if (arg === "--date") {
+      flags.date = rest[i + 1];
+      i += 2;
+      continue;
+    }
     if (!flags.id && !arg.startsWith("--")) {
       flags.id = arg;
       i += 1;
@@ -783,6 +790,27 @@ function parseReadId(raw: string | undefined, entity: string): number {
     process.exit(1);
   }
   return id;
+}
+
+function parseIsoDateOrExit(raw: string): string {
+  const value = (raw ?? "").trim();
+  // Accept YYYY-MM-DD only.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    console.error(`Invalid date "${raw}". Expected YYYY-MM-DD.`);
+    process.exit(1);
+  }
+  // Validate date is real.
+  const d = new Date(value + "T12:00:00Z");
+  if (Number.isNaN(d.getTime())) {
+    console.error(`Invalid date "${raw}". Expected a real calendar date.`);
+    process.exit(1);
+  }
+  const iso = d.toISOString().slice(0, 10);
+  if (iso !== value) {
+    console.error(`Invalid date "${raw}". Expected a real calendar date.`);
+    process.exit(1);
+  }
+  return value;
 }
 
 async function readPackageVersion(): Promise<string> {
@@ -1006,7 +1034,7 @@ const DAY_NAMES = ["Su", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 async function outputSchedule(
   client: WilmaClient,
-  opts: { when: string; json?: boolean; label?: string }
+  opts: { when: string; date?: string; json?: boolean; label?: string }
 ) {
   const overview = await client.overview.get();
   const when = opts.when || "week";
@@ -1014,7 +1042,10 @@ async function outputSchedule(
   let startDate: string;
   let endDate: string;
 
-  if (when === "today") {
+  if (opts.date) {
+    const parsed = parseIsoDateOrExit(opts.date);
+    startDate = endDate = parsed;
+  } else if (when === "today") {
     startDate = endDate = todayString();
   } else if (when === "tomorrow") {
     startDate = endDate = nextSchoolDay();
@@ -1027,15 +1058,17 @@ async function outputSchedule(
   );
 
   if (opts.json) {
-    const result = when === "week"
+    const result = !opts.date && when === "week"
       ? { when, weekStart: startDate, weekEnd: endDate, lessons }
-      : { when, date: startDate, lessons };
+      : { when: opts.date ? "date" : when, date: startDate, lessons };
     console.log(JSON.stringify(result, null, 2));
     return;
   }
 
   const prefix = opts.label ? `[${opts.label}] ` : "";
-  if (when === "today") {
+  if (opts.date) {
+    console.log(`\n${prefix}Schedule for ${startDate}`);
+  } else if (when === "today") {
     console.log(`\n${prefix}Schedule for today (${startDate})`);
   } else if (when === "tomorrow") {
     console.log(`\n${prefix}Schedule for tomorrow (${startDate})`);
