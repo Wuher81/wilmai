@@ -82,7 +82,9 @@ async function main() {
 }
 
 async function chooseProfile(
-  config: { profiles: StoredProfile[]; lastProfileId?: string | null }
+  config: { profiles: StoredProfile[]; lastProfileId?: string | null },
+  onMfa?: MfaCallback,
+  onStoredProfileResolved?: (sp: StoredProfile) => void
 ): Promise<WilmaProfile | null> {
   if (config.profiles.length) {
     const choices = config.profiles.map((p) => ({
@@ -103,6 +105,7 @@ async function chooseProfile(
       if (!stored) {
         throw new Error("Stored profile not found");
       }
+      onStoredProfileResolved?.(stored);
       const secret = revealSecret(stored.passwordObfuscated);
       if (!secret) {
         throw new Error("Stored password could not be decoded");
@@ -111,7 +114,7 @@ async function chooseProfile(
         baseUrl: stored.tenantUrl,
         username: stored.username,
         password: secret,
-      });
+      }, onMfa);
       if (!selectedStudent) {
         return null;
       }
@@ -142,7 +145,7 @@ async function chooseProfile(
     password: passwordValue,
   };
 
-  const students = await WilmaClient.listStudents(profileBase);
+  const students = await WilmaClient.listStudents(profileBase, onMfa);
   const student = await chooseStudent(students);
   if (!student) return null;
 
@@ -165,18 +168,23 @@ async function chooseProfile(
 
   config.profiles = config.profiles.filter((p) => p.id !== stored.id).concat(stored);
   config.lastProfileId = stored.id;
+  onStoredProfileResolved?.(stored);
   await saveConfig(config);
 
   return finalProfile;
 }
 
 async function runInteractive(config: { profiles: StoredProfile[]; lastProfileId?: string | null }) {
+  const mfaState = { storedProfile: undefined as StoredProfile | undefined };
+  const interactiveMfa = createInteractiveMfaCallback(
+    () => mfaState.storedProfile,
+    () => saveConfig(config)
+  );
   while (true) {
-    const profile = await chooseProfile(config);
+    const profile = await chooseProfile(config, interactiveMfa, (sp) => { mfaState.storedProfile = sp; });
     if (!profile) {
       return;
     }
-    const interactiveMfa = createInteractiveMfaCallback();
     const client = await WilmaClient.login(profile, interactiveMfa);
 
     let nextAction = await selectOrCancel({
@@ -383,10 +391,11 @@ async function chooseStudent(students: StudentInfo[]): Promise<StudentInfo | nul
 
 async function chooseStudentFromProfile(
   stored: StoredProfile,
-  baseProfile: { baseUrl: string; username: string; password: string }
+  baseProfile: { baseUrl: string; username: string; password: string },
+  onMfa?: MfaCallback
 ): Promise<StudentInfo | null> {
   let students: StudentInfo[] = [];
-  const fresh = await WilmaClient.listStudents(baseProfile);
+  const fresh = await WilmaClient.listStudents(baseProfile, onMfa);
   if (fresh.length) {
     students = fresh;
     stored.students = fresh.map((s) => ({ studentNumber: s.studentNumber, name: s.name }));
@@ -435,7 +444,15 @@ async function handleCommand(
 
   const profile = await getProfileForCommandNonInteractive(config, flags);
   if (!profile) return;
-  const mfaCallback = createNonInteractiveMfaCallback(flags.totpSecret);
+  // Use --totp-secret flag, or fall back to stored TOTP secret from config
+  let totpSecret = flags.totpSecret;
+  if (!totpSecret) {
+    const stored = config.profiles.find((p) => p.id === config.lastProfileId);
+    if (stored?.totpSecretObfuscated) {
+      totpSecret = revealSecret(stored.totpSecretObfuscated) ?? undefined;
+    }
+  }
+  const mfaCallback = createNonInteractiveMfaCallback(totpSecret);
   const client = await WilmaClient.login(profile, mfaCallback);
 
   if (command === "kids") {
@@ -1447,13 +1464,61 @@ async function selectOrCancel<T>(opts: Parameters<typeof select>[0], clearScreen
   }
 }
 
-function createInteractiveMfaCallback(): MfaCallback {
+function createInteractiveMfaCallback(
+  getStoredProfile?: () => StoredProfile | undefined,
+  saveProfile?: () => Promise<void>
+): MfaCallback {
+  let lastCode: string | null = null;
+  let lastCodeTime = 0;
   return async (_formkey: string): Promise<string> => {
-    const code = await input({ message: "Enter MFA code from authenticator app" });
-    if (!code) {
-      throw new Error("MFA cancelled");
+    // TOTP codes are valid for 30s; reuse if within the same window
+    const now = Math.floor(Date.now() / 30000);
+    if (lastCode && now === lastCodeTime) {
+      return lastCode;
     }
-    return code.trim();
+
+    // If a TOTP secret is stored, auto-generate
+    const stored = getStoredProfile?.();
+    if (stored?.totpSecretObfuscated) {
+      const secret = revealSecret(stored.totpSecretObfuscated);
+      if (secret) {
+        const code = generateTOTP(parseTotpSecret(secret));
+        lastCode = code;
+        lastCodeTime = now;
+        return code;
+      }
+    }
+
+    const choice = await select({
+      message: "MFA required. Choose how to authenticate:",
+      choices: [
+        { value: "code", name: "Enter one-time code from authenticator app" },
+        { value: "secret", name: "Save TOTP secret for automatic login" },
+      ],
+    });
+
+    if (choice === "secret") {
+      const secretInput = await input({
+        message: "Paste TOTP secret (base32 key or otpauth:// URI)",
+      });
+      if (!secretInput) throw new Error("MFA cancelled");
+      const secret = parseTotpSecret(secretInput.trim());
+      // Save to config
+      if (stored && saveProfile) {
+        stored.totpSecretObfuscated = obfuscateSecret(secretInput.trim());
+        await saveProfile();
+      }
+      const code = generateTOTP(secret);
+      lastCode = code;
+      lastCodeTime = now;
+      return code;
+    }
+
+    const code = await input({ message: "Enter MFA code from authenticator app" });
+    if (!code) throw new Error("MFA cancelled");
+    lastCode = code.trim();
+    lastCodeTime = now;
+    return lastCode;
   };
 }
 

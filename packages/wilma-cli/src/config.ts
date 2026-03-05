@@ -8,6 +8,7 @@ export interface StoredProfile {
   tenantName?: string | null;
   username: string;
   passwordObfuscated: string;
+  totpSecretObfuscated?: string | null;
   students?: { studentNumber: string; name: string }[];
   lastStudentNumber?: string | null;
   lastStudentName?: string | null;
