@@ -577,6 +577,8 @@ async function handleCommand(
     });
     await outputSchedule(perStudentClient, {
       when: (flags.when as "today" | "tomorrow" | "week") ?? "week",
+      date: flags.date,
+      weekday: flags.weekday,
       json: flags.json,
       label: studentInfo?.name ?? undefined,
     });
@@ -655,7 +657,7 @@ async function handleCommand(
 function printUsage() {
   console.log("Usage:");
   console.log("  wilma summary [--days 7] [--student <id|name>] [--all-students] [--json]");
-  console.log("  wilma schedule list [--when today|tomorrow|week] [--student <id|name>] [--all-students] [--json]");
+  console.log("  wilma schedule list [--when today|tomorrow|week] [--date YYYY-MM-DD] [--weekday mon|tue|wed|thu|fri|sat|sun] [--student <id|name>] [--all-students] [--json]");
   console.log("  wilma homework list [--limit 10] [--student <id|name>] [--all-students] [--json]");
   console.log("  wilma exams list [--limit 20] [--student <id|name>] [--all-students] [--json]");
   console.log("  wilma grades list [--limit 20] [--student <id|name>] [--all-students] [--json]");
@@ -711,6 +713,8 @@ function parseArgs(args: string[]) {
     allStudents?: boolean;
     debug?: boolean;
     when?: string;
+    date?: string;
+    weekday?: string;
     days?: number;
   } = {};
   let i = 0;
@@ -762,6 +766,16 @@ function parseArgs(args: string[]) {
       i += 2;
       continue;
     }
+    if (arg === "--date") {
+      flags.date = rest[i + 1];
+      i += 2;
+      continue;
+    }
+    if (arg === "--weekday") {
+      flags.weekday = rest[i + 1];
+      i += 2;
+      continue;
+    }
     if (!flags.id && !arg.startsWith("--")) {
       flags.id = arg;
       i += 1;
@@ -783,6 +797,76 @@ function parseReadId(raw: string | undefined, entity: string): number {
     process.exit(1);
   }
   return id;
+}
+
+function parseIsoDateOrExit(raw: string): string {
+  const value = (raw ?? "").trim();
+  // Accept YYYY-MM-DD only.
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    console.error(`Invalid date "${raw}". Expected YYYY-MM-DD.`);
+    process.exit(1);
+  }
+  // Validate date is real.
+  const d = new Date(value + "T12:00:00Z");
+  if (Number.isNaN(d.getTime())) {
+    console.error(`Invalid date "${raw}". Expected a real calendar date.`);
+    process.exit(1);
+  }
+  const iso = d.toISOString().slice(0, 10);
+  if (iso !== value) {
+    console.error(`Invalid date "${raw}". Expected a real calendar date.`);
+    process.exit(1);
+  }
+  return value;
+}
+
+function normalizeWeekdayOrExit(raw: string): number {
+  const v = (raw ?? "").trim().toLowerCase();
+  const map: Record<string, number> = {
+    sun: 0,
+    su: 0,
+    sunday: 0,
+    mon: 1,
+    ma: 1,
+    monday: 1,
+    tue: 2,
+    ti: 2,
+    tuesday: 2,
+    wed: 3,
+    ke: 3,
+    wednesday: 3,
+    thu: 4,
+    to: 4,
+    thursday: 4,
+    fri: 5,
+    pe: 5,
+    friday: 5,
+    sat: 6,
+    la: 6,
+    saturday: 6,
+  };
+  const day = map[v];
+  if (day === undefined) {
+    console.error(
+      `Invalid weekday "${raw}". Use mon|tue|wed|thu|fri|sat|sun (also accepts fi: ma|ti|ke|to|pe|la|su).`
+    );
+    process.exit(1);
+  }
+  return day;
+}
+
+function nextDateForWeekday(rawWeekday: string): string {
+  const target = normalizeWeekdayOrExit(rawWeekday);
+  const now = new Date();
+  // Use local time.
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0);
+  const current = today.getDay();
+  let delta = (target - current + 7) % 7;
+  // If you ask for e.g. "thu" on a Saturday, you'll get next Thursday.
+  // If you ask for today's weekday, you'll get today.
+  const d = new Date(today);
+  d.setDate(d.getDate() + delta);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 async function readPackageVersion(): Promise<string> {
@@ -1006,7 +1090,7 @@ const DAY_NAMES = ["Su", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 async function outputSchedule(
   client: WilmaClient,
-  opts: { when: string; json?: boolean; label?: string }
+  opts: { when: string; date?: string; weekday?: string; json?: boolean; label?: string }
 ) {
   const overview = await client.overview.get();
   const when = opts.when || "week";
@@ -1014,7 +1098,18 @@ async function outputSchedule(
   let startDate: string;
   let endDate: string;
 
-  if (when === "today") {
+  if (opts.date && opts.weekday) {
+    console.error("Use either --date or --weekday, not both.");
+    process.exit(1);
+  }
+
+  if (opts.date) {
+    const parsed = parseIsoDateOrExit(opts.date);
+    startDate = endDate = parsed;
+  } else if (opts.weekday) {
+    const parsed = nextDateForWeekday(opts.weekday);
+    startDate = endDate = parsed;
+  } else if (when === "today") {
     startDate = endDate = todayString();
   } else if (when === "tomorrow") {
     startDate = endDate = nextSchoolDay();
@@ -1027,15 +1122,17 @@ async function outputSchedule(
   );
 
   if (opts.json) {
-    const result = when === "week"
+    const result = !opts.date && !opts.weekday && when === "week"
       ? { when, weekStart: startDate, weekEnd: endDate, lessons }
-      : { when, date: startDate, lessons };
+      : { when: opts.date ? "date" : (opts.weekday ? "weekday" : when), date: startDate, lessons };
     console.log(JSON.stringify(result, null, 2));
     return;
   }
 
   const prefix = opts.label ? `[${opts.label}] ` : "";
-  if (when === "today") {
+  if (opts.date || opts.weekday) {
+    console.log(`\n${prefix}Schedule for ${startDate}`);
+  } else if (when === "today") {
     console.log(`\n${prefix}Schedule for today (${startDate})`);
   } else if (when === "tomorrow") {
     console.log(`\n${prefix}Schedule for tomorrow (${startDate})`);
