@@ -71,11 +71,25 @@ wilma update
 wilma config clear
 ```
 
+## MFA (Multi-Factor Authentication)
+
+If your Wilma account has MFA/TOTP enabled:
+
+**Interactive (recommended):** Run `wilma` and choose "Save TOTP secret for automatic login" when prompted. Paste your base32 key or `otpauth://` URI from your authenticator app. Future logins auto-authenticate.
+
+**Non-interactive:** Pass the secret directly:
+```bash
+wilma schedule list --totp-secret <base32-key> --json
+wilma schedule list --totp-secret 'otpauth://totp/...' --json
+```
+
+If you've saved your TOTP secret via interactive setup, `--totp-secret` is not needed.
+
 ## Config
 Local config is stored in `~/.config/wilmai/config.json` (or `$XDG_CONFIG_HOME/wilmai/config.json`).
 Use `wilma config clear` to remove it. Override with `WILMAI_CONFIG_PATH`.
 
 ## Notes
-- Credentials are stored with lightweight obfuscation for convenience.
+- Credentials and TOTP secrets are stored with lightweight obfuscation for convenience.
 - For multi-child accounts, you can pass `--student <id|name>` or `--all-students`.
 - All list commands support `--json` for agent-friendly structured output.
