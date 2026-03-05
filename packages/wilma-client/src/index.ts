@@ -15,7 +15,8 @@ export type {
   StudentInfo,
 } from "./types.js";
 export { WilmaClient } from "./client.js";
-export { WilmaSession, AuthenticationError, APIError } from "./session.js";
+export type { MfaCallback } from "./client.js";
+export { WilmaSession, AuthenticationError, MfaRequiredError, APIError } from "./session.js";
 export {
   loadTenantDiscovery,
   listTenants,

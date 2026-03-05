@@ -1,6 +1,6 @@
 ---
 name: wilma
-version: 1.3.0
+version: 1.4.0
 description: Access Finland's Wilma school system from AI agents. Fetch schedules, homework, exams, grades, messages, and news via the wilma CLI. Start with `wilma summary --json` for a full daily briefing, or drill into specific data with individual commands.
 metadata:
   {
@@ -103,6 +103,14 @@ wilma exams list --all-students --json
 ```
 
 You can also pass a name fragment for `--student` (fuzzy match).
+
+## MFA (Multi-Factor Authentication)
+If the Wilma account has MFA/TOTP enabled, provide the TOTP secret for non-interactive use:
+```bash
+wilma schedule list --totp-secret <base32-key> --student "Stella" --json
+wilma schedule list --totp-secret 'otpauth://totp/...' --student "Stella" --json
+```
+The `--totp-secret` accepts either a raw base32 key or an `otpauth://` URI (as exported from authenticator apps). In interactive mode (`wilma` without arguments), the CLI prompts for the 6-digit code.
 
 ## Notes
 - If no `--student` is provided, the CLI uses the last selected student from `~/.config/wilmai/config.json` (or `$XDG_CONFIG_HOME/wilmai/config.json`).

@@ -1,4 +1,4 @@
-import { WilmaSession } from "./session.js";
+import { WilmaSession, MfaRequiredError } from "./session.js";
 import type { Exam, Message, MessageFolder, NewsItem, OverviewData, WilmaProfile, StudentInfo } from "./types.js";
 import { parseWilmaTimestamp } from "./parsers/dates.js";
 import { parseMessagesList, parseMessageDetailHtml } from "./parsers/messages.js";
@@ -12,6 +12,8 @@ import { parseExamsHtml } from "./parsers/exams.js";
 import { parseOverview } from "./parsers/overview.js";
 import { parseStudentsFromHome } from "./parsers/students.js";
 
+export type MfaCallback = (formkey: string) => Promise<string>;
+
 export class WilmaClient {
   private session: WilmaSession;
 
@@ -19,18 +21,36 @@ export class WilmaClient {
     this.session = session;
   }
 
-  static async login(profile: WilmaProfile): Promise<WilmaClient> {
+  static async login(profile: WilmaProfile, onMfaRequired?: MfaCallback): Promise<WilmaClient> {
     const session = new WilmaSession(profile.baseUrl, {
       studentNumber: profile.studentNumber ?? null,
       debug: profile.debug ?? false,
     });
-    await session.login(profile.username, profile.password);
+    try {
+      await session.login(profile.username, profile.password);
+    } catch (err) {
+      if (err instanceof MfaRequiredError && onMfaRequired) {
+        const otpCode = await onMfaRequired(err.formkey);
+        await session.submitMfaCode(err.formkey, otpCode);
+      } else {
+        throw err;
+      }
+    }
     return new WilmaClient(session);
   }
 
-  static async listStudents(profile: WilmaProfile): Promise<StudentInfo[]> {
+  static async listStudents(profile: WilmaProfile, onMfaRequired?: MfaCallback): Promise<StudentInfo[]> {
     const session = new WilmaSession(profile.baseUrl);
-    await session.login(profile.username, profile.password);
+    try {
+      await session.login(profile.username, profile.password);
+    } catch (err) {
+      if (err instanceof MfaRequiredError && onMfaRequired) {
+        const otpCode = await onMfaRequired(err.formkey);
+        await session.submitMfaCode(err.formkey, otpCode);
+      } else {
+        throw err;
+      }
+    }
     const resp = await session.get("/");
     const html = await resp.text();
     return parseStudentsFromHome(html);

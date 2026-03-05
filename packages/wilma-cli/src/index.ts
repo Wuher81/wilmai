@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 import { emitKeypressEvents } from "node:readline";
 import { select, input, password } from "@inquirer/prompts";
+import { createHmac } from "node:crypto";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import {
   WilmaClient,
+  MfaRequiredError,
   listTenants,
+  type MfaCallback,
   type MessageFolder,
   type OverviewData,
   type TenantInfo,
@@ -173,7 +176,8 @@ async function runInteractive(config: { profiles: StoredProfile[]; lastProfileId
     if (!profile) {
       return;
     }
-    const client = await WilmaClient.login(profile);
+    const interactiveMfa = createInteractiveMfaCallback();
+    const client = await WilmaClient.login(profile, interactiveMfa);
 
     let nextAction = await selectOrCancel({
       message: "What do you want to view?",
@@ -431,7 +435,8 @@ async function handleCommand(
 
   const profile = await getProfileForCommandNonInteractive(config, flags);
   if (!profile) return;
-  const client = await WilmaClient.login(profile);
+  const mfaCallback = createNonInteractiveMfaCallback(flags.totpSecret);
+  const client = await WilmaClient.login(profile, mfaCallback);
 
   if (command === "kids") {
     const students = await getStudentsForCommand(profile, config);
@@ -465,12 +470,12 @@ async function handleCommand(
       const perStudentClient = await WilmaClient.login({
         ...profile,
         studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
-      });
+      }, mfaCallback);
       await outputNewsItem(perStudentClient, newsId, flags.json);
       return;
     }
     if (flags.allStudents) {
-      await outputAllNews(profile, config, flags.limit ?? 20, flags.json);
+      await outputAllNews(profile, config, flags.limit ?? 20, flags.json, mfaCallback);
       return;
     }
     const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
@@ -481,7 +486,7 @@ async function handleCommand(
     const perStudentClient = await WilmaClient.login({
       ...profile,
       studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
-    });
+    }, mfaCallback);
     await outputNews(perStudentClient, {
       limit: flags.limit ?? 20,
       json: flags.json,
@@ -509,7 +514,7 @@ async function handleCommand(
       const perStudentClient = await WilmaClient.login({
         ...profile,
         studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
-      });
+      }, mfaCallback);
       await outputMessageItem(perStudentClient, messageId, flags.json);
       return;
     }
@@ -518,7 +523,7 @@ async function handleCommand(
         folder: (flags.folder as MessageFolder | undefined) ?? "inbox",
         limit: flags.limit ?? 20,
         json: flags.json,
-      });
+      }, mfaCallback);
       return;
     }
     const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
@@ -529,7 +534,7 @@ async function handleCommand(
     const perStudentClient = await WilmaClient.login({
       ...profile,
       studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
-    });
+    }, mfaCallback);
     await outputMessages(perStudentClient, {
       folder: (flags.folder as MessageFolder | undefined) ?? "inbox",
       limit: flags.limit ?? 20,
@@ -541,7 +546,7 @@ async function handleCommand(
 
   if (command === "exams") {
     if (flags.allStudents) {
-      await outputAllExams(profile, config, flags.limit ?? 20, flags.json);
+      await outputAllExams(profile, config, flags.limit ?? 20, flags.json, mfaCallback);
       return;
     }
     const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
@@ -552,7 +557,7 @@ async function handleCommand(
     const perStudentClient = await WilmaClient.login({
       ...profile,
       studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
-    });
+    }, mfaCallback);
     await outputUpcomingExams(perStudentClient, {
       limit: flags.limit ?? 20,
       json: flags.json,
@@ -563,7 +568,7 @@ async function handleCommand(
 
   if (command === "schedule") {
     if (flags.allStudents) {
-      await outputAllOverviewCommand(profile, config, "schedule", flags);
+      await outputAllOverviewCommand(profile, config, "schedule", flags, mfaCallback);
       return;
     }
     const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
@@ -574,7 +579,7 @@ async function handleCommand(
     const perStudentClient = await WilmaClient.login({
       ...profile,
       studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
-    });
+    }, mfaCallback);
     await outputSchedule(perStudentClient, {
       when: (flags.when as "today" | "tomorrow" | "week") ?? "week",
       date: flags.date,
@@ -587,7 +592,7 @@ async function handleCommand(
 
   if (command === "homework") {
     if (flags.allStudents) {
-      await outputAllOverviewCommand(profile, config, "homework", flags);
+      await outputAllOverviewCommand(profile, config, "homework", flags, mfaCallback);
       return;
     }
     const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
@@ -598,7 +603,7 @@ async function handleCommand(
     const perStudentClient = await WilmaClient.login({
       ...profile,
       studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
-    });
+    }, mfaCallback);
     await outputHomework(perStudentClient, {
       limit: flags.limit ?? 10,
       json: flags.json,
@@ -609,7 +614,7 @@ async function handleCommand(
 
   if (command === "grades") {
     if (flags.allStudents) {
-      await outputAllOverviewCommand(profile, config, "grades", flags);
+      await outputAllOverviewCommand(profile, config, "grades", flags, mfaCallback);
       return;
     }
     const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
@@ -620,7 +625,7 @@ async function handleCommand(
     const perStudentClient = await WilmaClient.login({
       ...profile,
       studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
-    });
+    }, mfaCallback);
     await outputGrades(perStudentClient, {
       limit: flags.limit ?? 20,
       json: flags.json,
@@ -631,7 +636,7 @@ async function handleCommand(
 
   if (command === "summary") {
     if (flags.allStudents) {
-      await outputAllOverviewCommand(profile, config, "summary", flags);
+      await outputAllOverviewCommand(profile, config, "summary", flags, mfaCallback);
       return;
     }
     const studentInfo = await resolveStudentForFlags(profile, config, flags.student);
@@ -642,7 +647,7 @@ async function handleCommand(
     const perStudentClient = await WilmaClient.login({
       ...profile,
       studentNumber: studentInfo?.studentNumber ?? profile.studentNumber,
-    });
+    }, mfaCallback);
     await outputSummary(perStudentClient, {
       days: flags.days ?? 7,
       json: flags.json,
@@ -670,6 +675,8 @@ function printUsage() {
   console.log("  wilma config clear");
   console.log("  wilma --help | -h");
   console.log("  wilma --version | -v");
+  console.log("");
+  console.log("MFA: --totp-secret <base32-key|otpauth://...>");
 }
 
 async function getProfileForCommandNonInteractive(
@@ -715,6 +722,7 @@ function parseArgs(args: string[]) {
     when?: string;
     date?: string;
     weekday?: string;
+    totpSecret?: string;
     days?: number;
   } = {};
   let i = 0;
@@ -773,6 +781,11 @@ function parseArgs(args: string[]) {
     }
     if (arg === "--weekday") {
       flags.weekday = rest[i + 1];
+      i += 2;
+      continue;
+    }
+    if (arg === "--totp-secret") {
+      flags.totpSecret = rest[i + 1];
       i += 2;
       continue;
     }
@@ -1434,6 +1447,75 @@ async function selectOrCancel<T>(opts: Parameters<typeof select>[0], clearScreen
   }
 }
 
+function createInteractiveMfaCallback(): MfaCallback {
+  return async (_formkey: string): Promise<string> => {
+    const code = await input({ message: "Enter MFA code from authenticator app" });
+    if (!code) {
+      throw new Error("MFA cancelled");
+    }
+    return code.trim();
+  };
+}
+
+function createNonInteractiveMfaCallback(totpSecret?: string): MfaCallback | undefined {
+  if (!totpSecret) return undefined;
+  const secret = parseTotpSecret(totpSecret);
+  return async (_formkey: string): Promise<string> => {
+    const code = generateTOTP(secret);
+    return code;
+  };
+}
+
+function parseTotpSecret(raw: string): string {
+  // Accept either a bare base32 key or an otpauth:// URI
+  if (raw.startsWith("otpauth://")) {
+    const url = new URL(raw);
+    const secret = url.searchParams.get("secret");
+    if (!secret) {
+      console.error("No 'secret' parameter found in otpauth:// URI.");
+      process.exit(1);
+    }
+    return secret;
+  }
+  return raw.replace(/[\s-]/g, "");
+}
+
+function generateTOTP(secret: string): string {
+  // TOTP: RFC 6238 — HMAC-SHA1 based, 6-digit, 30-second period
+  const base32Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  // Decode base32 secret
+  const cleanSecret = secret.replace(/[\s=-]+/g, "").toUpperCase();
+  let bits = "";
+  for (const c of cleanSecret) {
+    const val = base32Chars.indexOf(c);
+    if (val === -1) throw new Error(`Invalid base32 character: ${c}`);
+    bits += val.toString(2).padStart(5, "0");
+  }
+  const bytes = new Uint8Array(Math.floor(bits.length / 8));
+  for (let i = 0; i < bytes.length; i++) {
+    bytes[i] = parseInt(bits.slice(i * 8, i * 8 + 8), 2);
+  }
+
+  const epoch = Math.floor(Date.now() / 1000);
+  const counter = Math.floor(epoch / 30);
+  const counterBuf = Buffer.alloc(8);
+  counterBuf.writeUInt32BE(Math.floor(counter / 0x100000000), 0);
+  counterBuf.writeUInt32BE(counter >>> 0, 4);
+
+  const hmac = createHmac("sha1", Buffer.from(bytes));
+  hmac.update(counterBuf);
+  const hash = hmac.digest();
+
+  const offset = hash[hash.length - 1] & 0x0f;
+  const code =
+    ((hash[offset] & 0x7f) << 24) |
+    ((hash[offset + 1] & 0xff) << 16) |
+    ((hash[offset + 2] & 0xff) << 8) |
+    (hash[offset + 3] & 0xff);
+
+  return (code % 1000000).toString().padStart(6, "0");
+}
+
 async function inputOrCancel(opts: Parameters<typeof input>[0]): Promise<string | null> {
   console.clear();
   const prompt = input(opts as any, { clearPromptOnDone: true });
@@ -1566,12 +1648,13 @@ async function outputAllNews(
   profile: WilmaProfile,
   config: { profiles: StoredProfile[]; lastProfileId?: string | null },
   limit: number,
-  json?: boolean
+  json?: boolean,
+  onMfa?: MfaCallback
 ) {
   const students = await getStudentsForCommand(profile, config);
   const results = [];
   for (const student of students) {
-    const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber });
+    const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber }, onMfa);
     const news = await client.news.list();
     results.push({ student, items: news.slice(0, limit) });
   }
@@ -1591,12 +1674,13 @@ async function outputAllNews(
 async function outputAllMessages(
   profile: WilmaProfile,
   config: { profiles: StoredProfile[]; lastProfileId?: string | null },
-  opts: { folder: MessageFolder; limit: number; json?: boolean }
+  opts: { folder: MessageFolder; limit: number; json?: boolean },
+  onMfa?: MfaCallback
 ) {
   const students = await getStudentsForCommand(profile, config);
   const results = [];
   for (const student of students) {
-    const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber });
+    const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber }, onMfa);
     const messages = await client.messages.list(opts.folder);
     results.push({ student, items: messages.slice(0, opts.limit) });
   }
@@ -1617,12 +1701,13 @@ async function outputAllExams(
   profile: WilmaProfile,
   config: { profiles: StoredProfile[]; lastProfileId?: string | null },
   limit: number,
-  json?: boolean
+  json?: boolean,
+  onMfa?: MfaCallback
 ) {
   const students = await getStudentsForCommand(profile, config);
   const results = [];
   for (const student of students) {
-    const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber });
+    const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber }, onMfa);
     const overview = await client.overview.get();
     results.push({ student, items: overview.upcomingExams.slice(0, limit) });
   }
@@ -1643,14 +1728,15 @@ async function outputAllOverviewCommand(
   profile: WilmaProfile,
   config: { profiles: StoredProfile[]; lastProfileId?: string | null },
   command: "schedule" | "homework" | "grades" | "summary",
-  flags: { json?: boolean; limit?: number; when?: string; days?: number }
+  flags: { json?: boolean; limit?: number; when?: string; days?: number },
+  onMfa?: MfaCallback
 ) {
   const students = await getStudentsForCommand(profile, config);
   if (command === "summary") {
     if (flags.json) {
       const summaries = [];
       for (const student of students) {
-        const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber });
+        const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber }, onMfa);
         const [overview, news, messages] = await Promise.all([
           client.overview.get(),
           client.news.list(),
@@ -1676,7 +1762,7 @@ async function outputAllOverviewCommand(
 
     // Human-readable summary output per student
     for (const student of students) {
-      const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber });
+      const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber }, onMfa);
       await outputSummary(client, {
         days: flags.days ?? 7,
         json: false,
@@ -1688,7 +1774,7 @@ async function outputAllOverviewCommand(
 
   const results: { student: StudentInfo; data: unknown }[] = [];
   for (const student of students) {
-    const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber });
+    const client = await WilmaClient.login({ ...profile, studentNumber: student.studentNumber }, onMfa);
     const overview = await client.overview.get();
     if (command === "schedule") {
       const when = flags.when || "week";
@@ -1752,6 +1838,15 @@ async function printStudentSelectionHelp(
 main().catch((err) => {
   if (isPromptCancel(err)) {
     process.exit(0);
+  }
+  if (err instanceof MfaRequiredError) {
+    console.error("MFA is enabled on this Wilma account.");
+    console.error("For non-interactive use, provide your TOTP secret:");
+    console.error("  --totp-secret <base32-key>");
+    console.error("  --totp-secret 'otpauth://totp/...'");
+    console.error("Tip: export the key from your authenticator app (base32 string or otpauth:// URI).");
+    console.error("For interactive use, run 'wilma' without arguments.");
+    process.exit(1);
   }
   console.error("CLI error:", err instanceof Error ? err.message : err);
   process.exit(1);

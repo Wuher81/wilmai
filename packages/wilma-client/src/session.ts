@@ -2,6 +2,13 @@ import { CookieJar, type Cookie } from "tough-cookie";
 import { fetch, type RequestInit, type Response } from "undici";
 
 export class AuthenticationError extends Error {}
+export class MfaRequiredError extends Error {
+  formkey: string;
+  constructor(formkey: string) {
+    super("MFA verification required");
+    this.formkey = formkey;
+  }
+}
 export class APIError extends Error {
   status: number;
   constructor(message: string, status: number) {
@@ -77,6 +84,29 @@ export class WilmaSession {
       .some((c: Cookie) => c.key === "Wilma2SID");
 
     const text = await resp.text();
+
+    // Check for MFA challenge by following the post-login redirect
+    if (resp.status >= 300 && resp.status < 400 && hasSessionCookie) {
+      const location = resp.headers.get("location");
+      if (location) {
+        const redirectResp = await this.rawRequest(
+          new URL(location).pathname + new URL(location).search,
+          { method: "GET" }
+        );
+        const redirectText = await redirectResp.text();
+        const mfaFormkeyMatch = /id="mfa-formkey"\s+value="([^"]+)"/.exec(redirectText);
+        if (mfaFormkeyMatch) {
+          if (this.debug) {
+            console.log(`[wilmai] MFA challenge detected`);
+          }
+          // Store credentials so we can complete login after MFA
+          this.username = username;
+          this.password = password;
+          throw new MfaRequiredError(mfaFormkeyMatch[1]);
+        }
+      }
+    }
+
     if (hasSessionCookie || isLoginOk(text)) {
       this.loggedIn = true;
       this.username = username;
@@ -85,6 +115,49 @@ export class WilmaSession {
     }
 
     throw new AuthenticationError("Wilma login failed");
+  }
+
+  async submitMfaCode(formkey: string, otpCode: string): Promise<void> {
+    // Wilma's MFA endpoint: POST /api/v1/accounts/me/mfa/otp/check
+    // Body: formkey=<formkey>&payload={"otp":"<code>","action":"login"}
+    // No student prefix — MFA is account-level, not student-level
+    const path = `/api/v1/accounts/me/mfa/otp/check`;
+
+    const body = new URLSearchParams({
+      formkey,
+      payload: JSON.stringify({ otp: otpCode, action: "login" }),
+    });
+
+    if (this.debug) {
+      console.log(`[wilmai] POST ${path} (MFA OTP check)`);
+    }
+
+    const resp = await this.rawRequest(path, {
+      method: "POST",
+      body: body.toString(),
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      },
+    });
+
+    const text = await resp.text();
+    let success = false;
+    try {
+      const data = JSON.parse(text);
+      // Response format: { statusCode, payload: { success } } or { success }
+      success = data?.payload?.success ?? data?.success ?? false;
+    } catch {
+      throw new AuthenticationError("MFA verification failed: unexpected response");
+    }
+
+    if (!success) {
+      throw new AuthenticationError("MFA verification failed: invalid OTP code");
+    }
+
+    this.loggedIn = true;
+    if (this.debug) {
+      console.log(`[wilmai] MFA verification successful`);
+    }
   }
 
   private async getLoginFormFields(): Promise<Record<string, string>> {
@@ -108,6 +181,10 @@ export class WilmaSession {
       this.loggedIn = false;
       await this.login(this.username, this.password);
       resp = await this.rawRequest(prefixedPath, init);
+    }
+
+    if (this.debug) {
+      console.log(`[wilmai] ${init?.method ?? "GET"} ${prefixedPath} => ${resp.status}`);
     }
 
     if (resp.status >= 400) {
