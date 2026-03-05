@@ -1,6 +1,6 @@
 ---
 name: wilma
-version: 1.2.0
+version: 1.3.0
 description: Access Finland's Wilma school system from AI agents. Fetch schedules, homework, exams, grades, messages, and news via the wilma CLI. Start with `wilma summary --json` for a full daily briefing, or drill into specific data with individual commands.
 metadata:
   {
@@ -61,7 +61,10 @@ Returns today's and tomorrow's schedule, upcoming exams, recent homework, recent
 wilma schedule list --when today --student <id|name> --json
 wilma schedule list --when tomorrow --student <id|name> --json
 wilma schedule list --when week --student <id|name> --json
+wilma schedule list --date 2026-03-10 --student <id|name> --json
+wilma schedule list --weekday thu --student <id|name> --json
 ```
+`--weekday` also accepts Finnish short forms: `ma`, `ti`, `ke`, `to`, `pe`, `la`, `su`. Use `--date` or `--weekday`, not both.
 
 ### Homework
 ```bash
