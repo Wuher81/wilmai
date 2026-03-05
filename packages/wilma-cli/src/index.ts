@@ -914,7 +914,6 @@ async function handleUpdate(): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn("npm", ["install", "-g", "@wilm-ai/wilma-cli@latest"], {
       stdio: "inherit",
-      shell: true,
     });
 
     child.on("error", (err) => {
